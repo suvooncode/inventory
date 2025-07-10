@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold mb-4">Inventory Management System</h1>
+        
+        <!-- Tabs -->
+        <div class="mb-4">
+            <button class="tab-button bg-blue-500 text-white px-4 py-2 rounded" onclick="showSection('purchase')">Purchase</button>
+            <button class="tab-button bg-blue-500 text-white px-4 py-2 rounded" onclick="showSection('ready_to_sale')">Ready to Sale</button>
+            <button class="tab-button bg-blue-500 text-white px-4 py-2 rounded" onclick="showSection('sale')">Sale</button>
+            <button class="tab-button bg-blue-500 text-white px-4 py-2 rounded" onclick="showSection('views')">Views</button>
+            <button class="tab-button bg-blue-500 text-white px-4 py-2 rounded" onclick="showSection('reports')">Reports</button>
+            <button class="tab-button bg-blue-500 text-white px-4 py-2 rounded" onclick="showSection('summary')">Inventory Summary</button>
+        </div>
+
+        <!-- Purchase Section -->
+        <div id="purchase" class="section hidden">
+            <h2 class="text-2xl font-bold mb-2">Purchase Bill</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label>Category:</label>
+                    <select id="purchase_category" class="border p-2 w-full"></select>
+                    <input type="text" id="new_category" placeholder="New Category" class="border p-2 w-full mt-2">
+                    <button onclick="addCategory()" class="bg-green-500 text-white px-4 py-2 mt-2">Add Category</button>
+                </div>
+                <div>
+                    <label>Type:</label>
+                    <select id="purchase_type" class="border p-2 w-full"></select>
+                    <input type="text" id="new_type" placeholder="New Type" class="border p-2 w-full mt-2">
+                    <button onclick="addType()" class="bg-green-500 text-white px-4 py-2 mt-2">Add Type</button>
+                </div>
+                <div>
+                    <label>Size:</label>
+                    <select id="purchase_size" class="border p-2 w-full"></select>
+                    <input type="text" id="new_size" placeholder="New Size" class="border p-2 w-full mt-2">
+                    <button onclick="addSize()" class="bg-green-500 text-white px-4 py-2 mt-2">Add Size</button>
+                </div>
+                <div>
+                    <label>Company:</label>
+                    <select id="purchase_company" class="border p-2 w-full"></select>
+                    <input type="text" id="new_company" placeholder="New Company" class="border p-2 w-full mt-2">
+                    <button onclick="addCompany()" class="bg-green-500 text-white px-4 py-2 mt-2">Add Company</button>
+                </div>
+                <div>
+                    <label>Quantity:</label>
+                    <input type="number" id="purchase_quantity" class="border p-2 w-full" min="1">
+                </div>
+                <div>
+                    <label>Price (Optional):</label>
+                    <input type="number" id="purchase_price" class="border p-2 w-full" step="0.01">
+                </div>
+            </div>
+            <button onclick="submitPurchase()" class="bg-blue-500 text-white px-4 py-2 mt-4">Submit Purchase</button>
+            <h3 class="text-xl font-bold mt-4">Purchase Items</h3>
+            <div class="mb-4">
+                <button class="bg-blue-500 text-white px-4 py-2" onclick="showPurchaseSubSection('purchase_minus_ready')">Purchase - Ready to Sale</button>
+                <button class="bg-blue-500 text-white px-4 py-2" onclick="showPurchaseSubSection('purchase_minus_sale')">Purchase - Sale</button>
+            </div>
+            <div id="purchase_minus_ready" class="purchase-subsection">
+                <table class="w-full border mt-2">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="border p-2">Category</th>
+                            <th class="border p-2">Type</th>
+                            <th class="border p-2">Size</th>
+                            <th class="border p-2">Company</th>
+                            <th class="border p-2">Quantity</th>
+                            <th class="border p-2">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="purchase_minus_ready_table"></tbody>
+                </table>
+            </div>
+            <div id="purchase_minus_sale" class="purchase-subsection hidden">
+                <table class="w-full border mt-2">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="border p-2">Category</th>
+                            <th class="border p-2">Type</th>
+                            <th class="border p-2">Size</th>
+                            <th class="border p-2">Company</th>
+                            <th class="border p-2">Quantity</th>
+                            <th class="border p-2">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="purchase_minus_sale_table"></tbody>
+                </table>
+            </div>
+            <div id="purchase_table" class="purchase-subsection hidden">
+                <table class="w-full border mt-2">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="border p-2">Category</th>
+                            <th class="border p-2">Type</th>
+                            <th class="border p-2">Size</th>
+                            <th class="border p-2">Company</th>
+                            <th class="border p-2">Quantity</th>
+                            <th class="border p-2">Price</th>
+                            <th class="border p-2">Date</th>
+                            <th class="border p-2">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="purchase_full_table"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Ready to Sale Section -->
+        <div id="ready_to_sale" class="section hidden">
+            <h2 class="text-2xl font-bold mb-2">Ready to Sale Bill</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label>Category:</label>
+                    <select id="rts_category" class="border p-2 w-full"></select>
+                </div>
+                <div>
+                    <label>Type:</label>
+                    <select id="rts_type" class="border p-2 w-full"></select>
+                </div>
+                <div>
+                    <label>Size:</label>
+                    <select id="rts_size" class="border p-2 w-full"></select>
+                </div>
+                <div>
+                    <label>Company:</label>
+                    <select id="rts_company" class="border p-2 w-full"></select>
+                </div>
+                <div>
+                    <label>Quantity:</label>
+                    <input type="number" id="rts_quantity" class="border p-2 w-full" min="1">
+                </div>
+                <div>
+                    <label>Price (Optional):</label>
+                    <input type="number" id="rts_price" class="border p-2 w-full" step="0.01">
+                </div>
+            </div>
+            <button onclick="submitReadyToSale()" class="bg-blue-500 text-white px-4 py-2 mt-4">Submit Ready to Sale</button>
+            <h3 class="text-xl font-bold mt-4">Ready to Sale Items</h3>
+            <div class="mb-4">
+                <button class="bg-blue-500 text-white px-4 py-2" onclick="showRtsSubSection('rts_minus_sale')">Ready to Sale - Sale</button>
+            </div>
+            <div id="rts_minus_sale" class="rts-subsection">
+                <table class="w-full border mt-2">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="border p-2">Category</th>
+                            <th class="border p-2">Type</th>
+                            <th class="border p-2">Size</th>
+                            <th class="border p-2">Company</th>
+                            <th class="border p-2">Quantity</th>
+                            <th class="border p-2">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rts_minus_sale_table"></tbody>
+                </table>
+            </div>
+            <div id="rts_table" class="rts-subsection hidden">
+                <table class="w-full border mt-2">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="border p-2">Category</th>
+                            <th class="border p-2">Type</th>
+                            <th class="border p-2">Size</th>
+                            <th class="border p-2">Company</th>
+                            <th class="border p-2">Quantity</th>
+                            <th class="border p-2">Price</th>
+                            <th class="border p-2">Date</th>
+                            <th class="border p-2">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rts_full_table"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Sale Section -->
+        <div id="sale" class="section hidden">
+            <h2 class="text-2xl font-bold mb-2">Sale Bill</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label>Category:</label>
+                    <select id="sale_category" class="border p-2 w-full"></select>
+                </div>
+                <div>
+                    <label>Type:</label>
+                    <select id="sale_type" class="border p-2 w-full"></select>
+                </div>
+                <div>
+                    <label>Size:</label>
+                    <select id="sale_size" class="border p-2 w-full"></select>
+                </div>
+                <div>
+                    <label>Company:</label>
+                    <select id="sale_company" class="border p-2 w-full"></select>
+                </div>
+                <div>
+                    <label>Quantity:</label>
+                    <input type="number" id="sale_quantity" class="border p-2 w-full" min="1">
+                </div>
+                <div>
+                    <label>Price (Optional):</label>
+                    <input type="number" id="sale_price" class="border p-2 w-full" step="0.01">
+                </div>
+            </div>
+            <button onclick="submitSale()" class="bg-blue-500 text-white px-4 py-2 mt-4">Submit Sale</button>
+            <h3 class="text-xl font-bold mt-4">Sale Items</h3>
+            <table class="w-full border mt-2">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="border p-2">Category</th>
+                        <th class="border p-2">Type</th>
+                        <th class="border p-2">Size</th>
+                        <th class="border p-2">Company</th>
+                        <th class="border p-2">Quantity</th>
+                        <th class="border p-2">Price</th>
+                        <th class="border p-2">Date</th>
+                        <th class="border p-2">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="sale_table"></tbody>
+            </table>
+        </div>
+
+        <!-- Views Section -->
+        <div id="views" class="section hidden">
+            <h2 class="text-2xl font-bold mb-2">Inventory Views</h2>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label>Category:</label>
+                    <select id="filter_category" class="border p-2 w-full">
+                        <option value="all">All</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Type:</label>
+                    <select id="filter_type" class="border p-2 w-full">
+                        <option value="all">All</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Size:</label>
+                    <select id="filter_size" class="border p-2 w-full">
+                        <option value="all">All</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Company:</label>
+                    <select id="filter_company" class="border p-2 w-full">
+                        <option value="all">All</option>
+                    </select>
+                </div>
+                <div class="col-span-2">
+                    <button onclick="loadInventory()" class="bg-blue-500 text-white px-4 py-2 mt-4">Apply Filter</button>
+                </div>
+            </div>
+            <table class="w-full border mt-2">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="border p-2">Category</th>
+                        <th class="border p-2">Type</th>
+                        <th class="border p-2">Size</th>
+                        <th class="border p-2">Company</th>
+                        <th class="border p-2">Quantity</th>
+                    </tr>
+                </thead>
+                <tbody id="inventory_table"></tbody>
+            </table>
+        </div>
+
+        <!-- Reports Section -->
+        <div id="reports" class="section hidden">
+            <h2 class="text-2xl font-bold mb-2">Reports</h2>
+            <h3 class="text-xl font-bold mt-4">Purchase Records</h3>
+            <table class="w-full border mt-2">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="border p-2">Category</th>
+                        <th class="border p-2">Type</th>
+                        <th class="border p-2">Size</th>
+                        <th class="border p-2">Company</th>
+                        <th class="border p-2">Quantity</th>
+                        <th class="border p-2">Price</th>
+                        <th class="border p-2">Date</th>
+                        <th class="border p-2">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="report_purchase_table"></tbody>
+            </table>
+            <h3 class="text-xl font-bold mt-4">Ready to Sale Records</h3>
+            <table class="w-full border mt-2">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="border p-2">Category</th>
+                        <th class="border p-2">Type</th>
+                        <th class="border p-2">Size</th>
+                        <th class="border p-2">Company</th>
+                        <th class="border p-2">Quantity</th>
+                        <th class="border p-2">Price</th>
+                        <th class="border p-2">Date</th>
+                        <th class="border p-2">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="report_rts_table"></tbody>
+            </table>
+            <h3 class="text-xl font-bold mt-4">Sale Records</h3>
+            <table class="w-full border mt-2">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="border p-2">Category</th>
+                        <th class="border p-2">Type</th>
+                        <th class="border p-2">Size</th>
+                        <th class="border p-2">Company</th>
+                        <th class="border p-2">Quantity</th>
+                        <th class="border p-2">Price</th>
+                        <th class="border p-2">Date</th>
+                        <th class="border p-2">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="report_sale_table"></tbody>
+            </table>
+        </div>
+
+        <!-- Inventory Summary Section -->
+        <div id="summary" class="section hidden">
+            <h2 class="text-2xl font-bold mb-2">Inventory Summary</h2>
+            <div class="grid grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label>Category:</label>
+                    <select id="summary_filter_category" class="border p-2 w-full">
+                        <option value="all">All</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <select id="logic_category_size" class="border p-2 w-full">
+                        <option value="AND">AND</option>
+                        <option value="OR">OR</option>
+                        <option value="Ignore">Ignore</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Size:</label>
+                    <select id="summary_filter_size" class="border p-2 w-full">
+                        <option value="all">All</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <select id="logic_size_company" class="border p-2 w-full">
+                        <option value="AND">AND</option>
+                        <option value="OR">OR</option>
+                        <option value="Ignore">Ignore</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Company:</label>
+                    <select id="summary_filter_company" class="border p-2 w-full">
+                        <option value="all">All</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <select id="logic_company_type" class="border p-2 w-full">
+                        <option value="AND">AND</option>
+                        <option value="OR">OR</option>
+                        <option value="Ignore">Ignore</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Type:</label>
+                    <select id="summary_filter_type" class="border p-2 w-full">
+                        <option value="all">All</option>
+                    </select>
+                </div>
+                <div class="col-span-3">
+                    <button onclick="loadSummary()" class="bg-blue-500 text-white px-4 py-2 mt-4">Apply Filter</button>
+                </div>
+            </div>
+            <h3 class="text-xl font-bold mt-4">Purchase Summary</h3>
+            <table class="w-full border mt-2">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="border p-2">Metric</th>
+                        <th class="border p-2">Total Quantity</th>
+                    </tr>
+                </thead>
+                <tbody id="purchase_summary_table"></tbody>
+            </table>
+            <h3 class="text-xl font-bold mt-4">Ready to Sale Summary</h3>
+            <table class="w-full border mt-2">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="border p-2">Metric</th>
+                        <th class="border p-2">Total Quantity</th>
+                    </tr>
+                </thead>
+                <tbody id="rts_summary_table"></tbody>
+            </table>
+        </div>
+
+        <!-- Edit Modal -->
+        <div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center">
+            <div class="bg-white p-4 rounded shadow-lg w-1/2">
+                <h3 class="text-xl font-bold mb-4">Edit Record</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label>Category:</label>
+                        <select id="edit_category" class="border p-2 w-full"></select>
+                    </div>
+                    <div>
+                        <label>Type:</label>
+                        <select id="edit_type" class="border p-2 w-full"></select>
+                    </div>
+                    <div>
+                        <label>Size:</label>
+                        <select id="edit_size" class="border p-2 w-full"></select>
+                    </div>
+                    <div>
+                        <label>Company:</label>
+                        <select id="edit_company" class="border p-2 w-full"></select>
+                    </div>
+                    <div>
+                        <label>Quantity:</label>
+                        <input type="number" id="edit_quantity" class="border p-2 w-full" min="1">
+                    </div>
+                    <div>
+                        <label>Price (Optional):</label>
+                        <input type="number" id="edit_price" class="border p-2 w-full" step="0.01">
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <button onclick="submitEdit()" class="bg-blue-500 text-white px-4 py-2">Save</button>
+                    <button onclick="closeEditModal()" class="bg-gray-500 text-white px-4 py-2 ml-2">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentEditId = null;
+        let currentEditTable = null;
+
+        function showSection(section) {
+            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(section).classList.remove('hidden');
+            if (section === 'purchase') {
+                showPurchaseSubSection('purchase_table');
+                loadPurchase();
+            }
+            if (section === 'ready_to_sale') {
+                showRtsSubSection('rts_table');
+                loadReadyToSale();
+            }
+            if (section === 'sale') loadSale();
+            if (section === 'reports') loadReports();
+            if (section === 'summary') loadSummary();
+        }
+
+        function showPurchaseSubSection(subsection) {
+            document.querySelectorAll('.purchase-subsection').forEach(s => s.classList.add('hidden'));
+            document.getElementById(subsection).classList.remove('hidden');
+            if (subsection === 'purchase_minus_ready') loadView('purchase_minus_ready_to_sale');
+            if (subsection === 'purchase_minus_sale') loadView('purchase_minus_sale');
+            if (subsection === 'purchase_table') loadPurchase();
+        }
+
+        function showRtsSubSection(subsection) {
+            document.querySelectorAll('.rts-subsection').forEach(s => s.classList.add('hidden'));
+            document.getElementById(subsection).classList.remove('hidden');
+            if (subsection === 'rts_minus_sale') loadView('ready_to_sale_minus_sale');
+            if (subsection === 'rts_table') loadReadyToSale();
+        }
+
+        async function loadDropdowns() {
+            const [categories, types, sizes, companies] = await Promise.all([
+                axios.get('/api/categories').then(res => res.data),
+                axios.get('/api/types').then(res => res.data),
+                axios.get('/api/sizes').then(res => res.data),
+                axios.get('/api/companies').then(res => res.data)
+            ]);
+
+            ['purchase', 'rts', 'sale', 'filter', 'edit', 'summary_filter'].forEach(prefix => {
+                const catSelect = document.getElementById(`${prefix}_category`);
+                const typeSelect = document.getElementById(`${prefix}_type`);
+                const sizeSelect = document.getElementById(`${prefix}_size`);
+                const compSelect = document.getElementById(`${prefix}_company`);
+                
+                catSelect.innerHTML = '<option value="all">All</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
+                typeSelect.innerHTML = '<option value="all">All</option>' + types.map(t => `<option value="${t}">${t}</option>`).join('');
+                sizeSelect.innerHTML = '<option value="all">All</option>' + sizes.map(s => `<option value="${s}">${s}</option>`).join('');
+                compSelect.innerHTML = '<option value="all">All</option>' + companies.map(c => `<option value="${c}">${c}</option>`).join('');
+            });
+        }
+
+        async function addCategory() {
+            const name = document.getElementById('new_category').value;
+            if (name) {
+                await axios.post('/api/categories', { name });
+                document.getElementById('new_category').value = '';
+                loadDropdowns();
+            }
+        }
+
+        async function addType() {
+            const name = document.getElementById('new_type').value;
+            if (name) {
+                await axios.post('/api/types', { name });
+                document.getElementById('new_type').value = '';
+                loadDropdowns();
+            }
+        }
+
+        async function addSize() {
+            const name = document.getElementById('new_size').value;
+            if (name) {
+                await axios.post('/api/sizes', { name });
+                document.getElementById('new_size').value = '';
+                loadDropdowns();
+            }
+        }
+
+        async function addCompany() {
+            const name = document.getElementById('new_company').value;
+            if (name) {
+                await axios.post('/api/companies', { name });
+                document.getElementById('new_company').value = '';
+                loadDropdowns();
+            }
+        }
+
+        async function submitPurchase() {
+            const data = {
+                category: document.getElementById('purchase_category').value,
+                type: document.getElementById('purchase_type').value,
+                size: document.getElementById('purchase_size').value,
+                company: document.getElementById('purchase_company').value,
+                quantity: parseInt(document.getElementById('purchase_quantity').value),
+                price: parseFloat(document.getElementById('purchase_price').value) || null
+            };
+            await axios.post('/api/purchase', data);
+            alert('Purchase added successfully');
+            loadPurchase();
+        }
+
+        async function submitReadyToSale() {
+            const data = {
+                category: document.getElementById('rts_category').value,
+                type: document.getElementById('rts_type').value,
+                size: document.getElementById('rts_size').value,
+                company: document.getElementById('rts_company').value,
+                quantity: parseInt(document.getElementById('rts_quantity').value),
+                price: parseFloat(document.getElementById('rts_price').value) || null
+            };
+            await axios.post('/api/ready_to_sale', data);
+            alert('Ready to Sale added successfully');
+            loadReadyToSale();
+        }
+
+        async function submitSale() {
+            const data = {
+                category: document.getElementById('sale_category').value,
+                type: document.getElementById('sale_type').value,
+                size: document.getElementById('sale_size').value,
+                company: document.getElementById('sale_company').value,
+                quantity: parseInt(document.getElementById('sale_quantity').value),
+                price: parseFloat(document.getElementById('sale_price').value) || null
+            };
+            await axios.post('/api/sale', data);
+            alert('Sale added successfully');
+            loadSale();
+        }
+
+        async function loadPurchase() {
+            const items = await axios.get('/api/purchase').then(res => res.data);
+            const table = document.getElementById('purchase_full_table');
+            table.innerHTML = items.map(item => `
+                <tr>
+                    <td class="border p-2">${item.category}</td>
+                    <td class="border p-2">${item.type}</td>
+                    <td class="border p-2">${item.size}</td>
+                    <td class="border p-2">${item.company}</td>
+                    <td class="border p-2">${item.quantity}</td>
+                    <td class="border p-2">${item.price || ''}</td>
+                    <td class="border p-2">${item.date}</td>
+                    <td class="border p-2">
+                        <button onclick="editRecord('purchase', ${item.id}, '${item.category}', '${item.type}', '${item.size}', '${item.company}', ${item.quantity}, ${item.price || 'null'})" class="bg-yellow-500 text-white px-2 py-1">Edit</button>
+                        <button onclick="deletePurchase(${item.id})" class="bg-red-500 text-white px-2 py-1 ml-2">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadReadyToSale() {
+            const items = await axios.get('/api/ready_to_sale').then(res => res.data);
+            const table = document.getElementById('rts_full_table');
+            table.innerHTML = items.map(item => `
+                <tr>
+                    <td class="border p-2">${item.category}</td>
+                    <td class="border p-2">${item.type}</td>
+                    <td class="border p-2">${item.size}</td>
+                    <td class="border p-2">${item.company}</td>
+                    <td class="border p-2">${item.quantity}</td>
+                    <td class="border p-2">${item.price || ''}</td>
+                    <td class="border p-2">${item.date}</td>
+                    <td class="border p-2">
+                        <button onclick="editRecord('ready_to_sale', ${item.id}, '${item.category}', '${item.type}', '${item.size}', '${item.company}', ${item.quantity}, ${item.price || 'null'})" class="bg-yellow-500 text-white px-2 py-1">Edit</button>
+                        <button onclick="moveReadyToSale(${item.id})" class="bg-red-500 text-white px-2 py-1 ml-2">Sold Out</button>
+                        <button onclick="moveReadyToPurchase(${item.id})" class="bg-blue-500 text-white px-2 py-1 ml-2">Move to Purchase</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadSale() {
+            const items = await axios.get('/api/sale').then(res => res.data);
+            const table = document.getElementById('sale_table');
+            table.innerHTML = items.map(item => `
+                <tr>
+                    <td class="border p-2">${item.category}</td>
+                    <td class="border p-2">${item.type}</td>
+                    <td class="border p-2">${item.size}</td>
+                    <td class="border p-2">${item.company}</td>
+                    <td class="border p-2">${item.quantity}</td>
+                    <td class="border p-2">${item.price || ''}</td>
+                    <td class="border p-2">${item.date}</td>
+                    <td class="border p-2">
+                        <button onclick="editRecord('sale', ${item.id}, '${item.category}', '${item.type}', '${item.size}', '${item.company}', ${item.quantity}, ${item.price || 'null'})" class="bg-yellow-500 text-white px-2 py-1">Edit</button>
+                        <button onclick="deleteSale(${item.id})" class="bg-red-500 text-white px-2 py-1 ml-2">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadReports() {
+            await Promise.all([loadPurchase(), loadReadyToSale(), loadSale()]);
+            document.getElementById('report_purchase_table').innerHTML = document.getElementById('purchase_full_table').innerHTML;
+            document.getElementById('report_rts_table').innerHTML = document.getElementById('rts_full_table').innerHTML;
+            document.getElementById('report_sale_table').innerHTML = document.getElementById('sale_table').innerHTML;
+        }
+
+        async function deletePurchase(id) {
+            if (confirm('Are you sure you want to delete this purchase record?')) {
+                await axios.delete(`/api/purchase/${id}`);
+                alert('Purchase deleted successfully');
+                loadPurchase();
+                loadReports();
+                loadSummary();
+            }
+        }
+
+        async function deleteSale(id) {
+            if (confirm('Are you sure you want to delete this sale record?')) {
+                await axios.delete(`/api/sale/${id}`);
+                alert('Sale deleted successfully');
+                loadSale();
+                loadReports();
+                loadSummary();
+            }
+        }
+
+        async function movePurchaseToReady(id) {
+            if (confirm('Move this purchase to Ready to Sale?')) {
+                await axios.post(`/api/move/purchase_to_ready/${id}`);
+                alert('Moved to Ready to Sale successfully');
+                loadPurchase();
+                loadReadyToSale();
+                loadSummary();
+            }
+        }
+
+        async function moveReadyToPurchase(id) {
+            if (confirm('Move this Ready to Sale item to Purchase?')) {
+                await axios.post(`/api/move/ready_to_purchase/${id}`);
+                alert('Moved to Purchase successfully');
+                loadReadyToSale();
+                loadPurchase();
+                loadReports();
+                loadSummary();
+            }
+        }
+
+        async function movePurchaseToSale(id) {
+            if (confirm('Move this purchase to Sale?')) {
+                await axios.post(`/api/move/purchase_to_sale/${id}`);
+                alert('Moved to Sale successfully');
+                loadPurchase();
+                loadSale();
+                loadSummary();
+            }
+        }
+
+        async function moveSaleToPurchase(id) {
+            if (confirm('Move this sale to Purchase?')) {
+                await axios.post(`/api/move/sale_to_purchase/${id}`);
+                alert('Moved to Purchase successfully');
+                loadSale();
+                loadPurchase();
+                loadSummary();
+            }
+        }
+
+        async function moveReadyToSale(id) {
+            if (confirm('Move this Ready to Sale item to Sale?')) {
+                await axios.post(`/api/move/ready_to_sale/${id}`);
+                alert('Moved to Sale successfully');
+                loadReadyToSale();
+                loadSale();
+                loadReports();
+                loadSummary();
+            }
+        }
+
+        async function moveSaleToReady(id) {
+            if (confirm('Move this sale to Ready to Sale?')) {
+                await axios.post(`/api/move/sale_to_ready/${id}`);
+                alert('Moved to Ready to Sale successfully');
+                loadSale();
+                loadReadyToSale();
+                loadSummary();
+            }
+        }
+
+        async function loadView(view) {
+            const items = await axios.get(`/api/view/${view}`).then(res => res.data);
+            const table = document.getElementById(`${view}_table`);
+            table.innerHTML = items.map(item => `
+                <tr>
+                    <td class="border p-2">${item.category}</td>
+                    <td class="border p-2">${item.type}</td>
+                    <td class="border p-2">${item.size}</td>
+                    <td class="border p-2">${item.company}</td>
+                    <td class="border p-2">${item.quantity}</td>
+                    <td class="border p-2">
+                        ${view === 'purchase_minus_ready_to_sale' ? `<button onclick="movePurchaseToReady(${item.id})" class="bg-blue-500 text-white px-2 py-1">Move to Ready</button>` : ''}
+                        ${view === 'purchase_minus_sale' ? `<button onclick="movePurchaseToSale(${item.id})" class="bg-blue-500 text-white px-2 py-1">Move to Sale</button>` : ''}
+                        ${view === 'ready_to_sale_minus_sale' ? `<button onclick="moveReadyToSale(${item.id})" class="bg-blue-500 text-white px-2 py-1">Sold Out</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadInventory() {
+            const filters = {
+                category: document.getElementById('filter_category').value,
+                type: document.getElementById('filter_type').value,
+                size: document.getElementById('filter_size').value,
+                company: document.getElementById('filter_company').value
+            };
+            const items = await axios.get('/api/inventory', { params: filters }).then(res => res.data);
+            const table = document.getElementById('inventory_table');
+            table.innerHTML = items.map(item => `
+                <tr>
+                    <td class="border p-2">${item.category}</td>
+                    <td class="border p-2">${item.type}</td>
+                    <td class="border p-2">${item.size}</td>
+                    <td class="border p-2">${item.company}</td>
+                    <td class="border p-2">${item.quantity}</td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadSummary() {
+            const filters = {
+                category: document.getElementById('summary_filter_category').value,
+                size: document.getElementById('summary_filter_size').value,
+                company: document.getElementById('summary_filter_company').value,
+                type: document.getElementById('summary_filter_type').value,
+                logic_category_size: document.getElementById('logic_category_size').value,
+                logic_size_company: document.getElementById('logic_size_company').value,
+                logic_company_type: document.getElementById('logic_company_type').value
+            };
+
+            // Build filter combinations for OR logic
+            let filterSets = [{}];
+            const fields = [
+                { name: 'category', value: filters.category, logic: filters.logic_category_size },
+                { name: 'size', value: filters.size, logic: filters.logic_size_company },
+                { name: 'company', value: filters.company, logic: filters.logic_company_type },
+                { name: 'type', value: filters.type, logic: null }
+            ];
+
+            for (let i = 0; i < fields.length - 1; i++) {
+                const currentField = fields[i];
+                const nextField = fields[i + 1];
+                if (currentField.logic === 'Ignore' || currentField.value === 'all') {
+                    continue;
+                }
+                if (currentField.logic === 'OR') {
+                    const newSets = [];
+                    filterSets.forEach(fs => {
+                        if (currentField.value !== 'all') {
+                            newSets.push({ ...fs, [currentField.name]: currentField.value });
+                        }
+                        if (nextField.value !== 'all' && nextField.logic !== 'Ignore') {
+                            newSets.push({ ...fs, [nextField.name]: nextField.value });
+                        }
+                    });
+                    filterSets = newSets.length > 0 ? newSets : [{}];
+                } else if (currentField.logic === 'AND' && currentField.value !== 'all') {
+                    filterSets.forEach(fs => fs[currentField.name] = currentField.value);
+                }
+            }
+            if (fields[3].value !== 'all' && fields[2].logic !== 'Ignore') {
+                filterSets.forEach(fs => fs.type = fields[3].value);
+            }
+
+            // Remove duplicate filter sets
+            filterSets = [...new Set(filterSets.map(fs => JSON.stringify(fs)))].map(fs => JSON.parse(fs));
+
+            // Fetch data for each view and filter set
+            let purchaseMinusReadyTotal = 0;
+            let purchaseMinusSaleTotal = 0;
+            let rtsMinusSaleTotal = 0;
+
+            for (const filterSet of filterSets) {
+                const [purchaseMinusReady, purchaseMinusSale, rtsMinusSale] = await Promise.all([
+                    axios.get('/api/view/purchase_minus_ready_to_sale', { params: filterSet }).then(res => res.data),
+                    axios.get('/api/view/purchase_minus_sale', { params: filterSet }).then(res => res.data),
+                    axios.get('/api/view/ready_to_sale_minus_sale', { params: filterSet }).then(res => res.data)
+                ]);
+
+                purchaseMinusReadyTotal += purchaseMinusReady.reduce((sum, item) => sum + item.quantity, 0);
+                purchaseMinusSaleTotal += purchaseMinusSale.reduce((sum, item) => sum + item.quantity, 0);
+                rtsMinusSaleTotal += rtsMinusSale.reduce((sum, item) => sum + item.quantity, 0);
+            }
+
+            const purchaseSummaryTable = document.getElementById('purchase_summary_table');
+            const rtsSummaryTable = document.getElementById('rts_summary_table');
+
+            purchaseSummaryTable.innerHTML = `
+                <tr>
+                    <td class="border p-2">Purchase - Ready to Sale</td>
+                    <td class="border p-2">${purchaseMinusReadyTotal}</td>
+                </tr>
+                <tr>
+                    <td class="border p-2">Purchase - Sale</td>
+                    <td class="border p-2">${purchaseMinusSaleTotal}</td>
+                </tr>
+            `;
+
+            rtsSummaryTable.innerHTML = `
+                <tr>
+                    <td class="border p-2">Ready to Sale - Sale</td>
+                    <td class="border p-2">${rtsMinusSaleTotal}</td>
+                </tr>
+            `;
+        }
+
+        function editRecord(table, id, category, type, size, company, quantity, price) {
+            currentEditId = id;
+            currentEditTable = table;
+            document.getElementById('edit_category').value = category;
+            document.getElementById('edit_type').value = type;
+            document.getElementById('edit_size').value = size;
+            document.getElementById('edit_company').value = company;
+            document.getElementById('edit_quantity').value = quantity;
+            document.getElementById('edit_price').value = price || '';
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        async function submitEdit() {
+            const data = {
+                id: currentEditId,
+                category: document.getElementById('edit_category').value,
+                type: document.getElementById('edit_type').value,
+                size: document.getElementById('edit_size').value,
+                company: document.getElementById('edit_company').value,
+                quantity: parseInt(document.getElementById('edit_quantity').value),
+                price: parseFloat(document.getElementById('edit_price').value) || null
+            };
+            await axios.put(`/api/${currentEditTable}`, data);
+            alert('Record updated successfully');
+            closeEditModal();
+            if (currentEditTable === 'purchase') loadPurchase();
+            if (currentEditTable === 'ready_to_sale') loadReadyToSale();
+            if (currentEditTable === 'sale') loadSale();
+            loadReports();
+            loadSummary();
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            currentEditId = null;
+            currentEditTable = null;
+        }
+
+        // Initialize
+        loadDropdowns();
+        showSection('purchase');
+    </script>
+</body>
+</html>

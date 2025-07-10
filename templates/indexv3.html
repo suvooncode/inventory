@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; }
+        .tab-content { margin-top: 20px; }
+        .summary { margin-bottom: 20px; }
+        table { width: 100%; }
+        .modal-body .row { margin-bottom: 10px; }
+        .error-message { color: red; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <ul class="nav nav-tabs">
+        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#purchase">Purchase</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#ready_to_sale">Ready to Sale</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sale">Sale</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#report">Report</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#master_data">Master Data</a></li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- Purchase Tab -->
+        <div id="purchase" class="tab-pane fade show active">
+            <div class="summary">
+                <h3>Purchase Summary</h3>
+                <p>Total Cost: <span id="total_cost">0</span> | Total Entries: <span id="total_entries">0</span></p>
+            </div>
+            <h3>Add Purchase</h3>
+            <form id="purchase_form">
+                <div class="row mb-3">
+                    <div class="col">
+                        <select id="purchase_category" class="form-select" required></select>
+                        <input type="text" id="new_category" class="form-control mt-2" placeholder="New Category">
+                        <button type="button" onclick="addNew('categories', 'purchase_category', 'new_category')" class="btn btn-secondary mt-2">Add Category</button>
+                    </div>
+                    <div class="col">
+                        <select id="purchase_type" class="form-select" required></select>
+                        <input type="text" id="new_type" class="form-control mt-2" placeholder="New Type">
+                        <button type="button" onclick="addNew('types', 'purchase_type', 'new_type')" class="btn btn-secondary mt-2">Add Type</button>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col">
+                        <select id="purchase_size" class="form-select" required></select>
+                        <input type="text" id="new_size" class="form-control mt-2" placeholder="New Size">
+                        <button type="button" onclick="addNew('sizes', 'purchase_size', 'new_size')" class="btn btn-secondary mt-2">Add Size</button>
+                    </div>
+                    <div class="col">
+                        <select id="purchase_supplier" class="form-select" required></select>
+                        <input type="text" id="new_supplier" class="form-control mt-2" placeholder="New Supplier">
+                        <button type="button" onclick="addNew('suppliers', 'purchase_supplier', 'new_supplier')" class="btn btn-secondary mt-2">Add Supplier</button>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col"><input type="number" id="purchase_quantity" class="form-control" placeholder="Quantity" required></div>
+                    <div class="col"><input type="number" id="purchase_price" class="form-control" placeholder="Price"></div>
+                    <div class="col"><input type="number" id="purchase_tax" class="form-control" placeholder="Tax"></div>
+                    <div class="col"><input type="number" id="purchase_carry_cost" class="form-control" placeholder="Carry Cost"></div>
+                    <div class="col"><input type="number" id="purchase_extra_cost" class="form-control" placeholder="Extra Cost"></div>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Purchase</button>
+            </form>
+            <h3>Purchase List</h3>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Category</th><th>Type</th><th>Size</th><th>Supplier</th>
+                        <th>Quantity</th><th>Price</th><th>Tax</th><th>Carry Cost</th>
+                        <th>Extra Cost</th><th>Date</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="purchase_list"></tbody>
+            </table>
+        </div>
+
+        <!-- Ready to Sale Tab -->
+        <div id="ready_to_sale" class="tab-pane fade">
+            <div class="summary">
+                <h3>Ready to Sale Summary</h3>
+                <p>Total Entries: <span id="ready_total_entries">0</span> | 
+                   Temporary Inventory: <span id="temp_inventory">0</span> | 
+                   Ready to Sale Inventory: <span id="ready_inventory">0</span></p>
+            </div>
+            <h3>Add to Ready to Sale</h3>
+            <form id="ready_to_sale_form">
+                <div class="row mb-3">
+                    <div class="col">
+                        <select id="ready_purchase_id" class="form-select" required>
+                            <option value="">Select Purchase</option>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <input type="number" id="ready_quantity" class="form-control" placeholder="Quantity" required min="1">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Add to Ready to Sale</button>
+            </form>
+            <h3>Ready to Sale List</h3>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Category</th><th>Type</th><th>Size</th><th>Supplier</th>
+                        <th>Quantity</th><th>Ready Inventory</th><th>Date</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="ready_to_sale_list"></tbody>
+            </table>
+        </div>
+
+        <!-- Sale Tab -->
+        <div id="sale" class="tab-pane fade">
+            <div class="summary">
+                <h3>Sale Summary</h3>
+                <p>Total Entries: <span id="sale_total_entries">0</span></p>
+            </div>
+            <h3>Add Sale</h3>
+            <form id="sale_form">
+                <div class="row mb-3">
+                    <div class="col">
+                        <select id="sale_ready_id" class="form-select" required>
+                            <option value="">Select Ready to Sale</option>
+                        </select>
+                    </div>
+                    <div class="col"><input type="number" id="sale_quantity" class="form-control" placeholder="Quantity" required min="1"></div>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Sale</button>
+            </form>
+            <h3>Sale List</h3>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Category</th><th>Type</th><th>Size</th><th>Supplier</th>
+                        <th>Quantity</th><th>Date</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="sale_list"></tbody>
+            </table>
+        </div>
+
+        <!-- Report Tab -->
+        <!-- Report Tab -->
+<div id="report" class="tab-pane fade">
+    <h3>Inventory Report</h3>
+    <div class="row mb-3">
+        <div class="col"><select id="report_category" class="form-select"><option value="">All Categories</option></select></div>
+        <div class="col"><select id="report_type" class="form-select"><option value="">All Types</option></select></div>
+        <div class="col"><select id="report_size" class="form-select"><option value="">All Sizes</option></select></div>
+        <div class="col"><select id="report_supplier" class="form-select"><option value="">All Suppliers</option></select></div>
+    </div>
+    <div id="report_error" class="error-message"></div>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Category</th><th>Type</th><th>Size</th><th>Supplier</th>
+                <th>Total Purchase</th><th>Total Ready</th><th>Total Sale</th>
+                <th>Inventory</th><th>Temporary Purchase Stock</th>
+            </tr>
+        </thead>
+        <tbody id="report_list"></tbody>
+    </table>
+</div>
+
+        <!-- Master Data Tab -->
+        <div id="master_data" class="tab-pane fade">
+            <h3>Master Data Management</h3>
+            <ul class="nav nav-tabs">
+                <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#categories_tab">Categories</a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#types_tab">Types</a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sizes_tab">Sizes</a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#suppliers_tab">Suppliers</a></li>
+            </ul>
+            <div class="tab-content">
+                <!-- Categories -->
+                <div id="categories_tab" class="tab-pane fade show active">
+                    <h4>Categories</h4>
+                    <div class="row mb-3">
+                        <div class="col"><input type="text" id="category_name" class="form-control" placeholder="New Category"></div>
+                        <div class="col"><button onclick="addNew('categories', 'master_categories', 'category_name')" class="btn btn-primary">Add</button></div>
+                    </div>
+                    <h5>Merge Categories</h5>
+                    <div class="row mb-3">
+                        <div class="col"><select id="category_keep" class="form-select"></select></div>
+                        <div class="col"><select id="category_merge" class="form-select"></select></div>
+                        <div class="col"><button onclick="merge('categories', 'category_keep', 'category_merge')" class="btn btn-warning">Merge</button></div>
+                    </div>
+                    <table class="table table-striped">
+                        <thead><tr><th>Name</th><th>Actions</th></tr></thead>
+                        <tbody id="category_list"></tbody>
+                    </table>
+                </div>
+                <!-- Types -->
+                <div id="types_tab" class="tab-pane fade">
+                    <h4>Types</h4>
+                    <div class="row mb-3">
+                        <div class="col"><input type="text" id="type_name" class="form-control" placeholder="New Type"></div>
+                        <div class="col"><button onclick="addNew('types', 'master_types', 'type_name')" class="btn btn-primary">Add</button></div>
+                    </div>
+                    <h5>Merge Types</h5>
+                    <div class="row mb-3">
+                        <div class="col"><select id="type_keep" class="form-select"></select></div>
+                        <div class="col"><select id="type_merge" class="form-select"></select></div>
+                        <div class="col"><button onclick="merge('types', 'type_keep', 'type_merge')" class="btn btn-warning">Merge</button></div>
+                    </div>
+                    <table class="table table-striped">
+                        <thead><tr><th>Name</th><th>Actions</th></tr></thead>
+                        <tbody id="type_list"></tbody>
+                    </table>
+                </div>
+                <!-- Sizes -->
+                <div id="sizes_tab" class="tab-pane fade">
+                    <h4>Sizes</h4>
+                    <div class="row mb-3">
+                        <div class="col"><input type="text" id="size_name" class="form-control" placeholder="New Size"></div>
+                        <div class="col"><button onclick="addNew('sizes', 'master_sizes', 'size_name')" class="btn btn-primary">Add</button></div>
+                    </div>
+                    <h5>Merge Sizes</h5>
+                    <div class="row mb-3">
+                        <div class="col"><select id="size_keep" class="form-select"></select></div>
+                        <div class="col"><select id="size_merge" class="form-select"></select></div>
+                        <div class="col"><button onclick="merge('sizes', 'size_keep', 'size_merge')" class="btn btn-warning">Merge</button></div>
+                    </div>
+                    <table class="table table-striped">
+                        <thead><tr><th>Name</th><th>Actions</th></tr></thead>
+                        <tbody id="size_list"></tbody>
+                    </table>
+                </div>
+                <!-- Suppliers -->
+                <div id="suppliers_tab" class="tab-pane fade">
+                    <h4>Suppliers</h4>
+                    <div class="row mb-3">
+                        <div class="col"><input type="text" id="supplier_name" class="form-control" placeholder="New Supplier"></div>
+                        <div class="col"><button onclick="addNew('suppliers', 'master_suppliers', 'supplier_name')" class="btn btn-primary">Add</button></div>
+                    </div>
+                    <h5>Merge Suppliers</h5>
+                    <div class="row mb-3">
+                        <div class="col"><select id="supplier_keep" class="form-select"></select></div>
+                        <div class="col"><select id="supplier_merge" class="form-select"></select></div>
+                        <div class="col"><button onclick="merge('suppliers', 'supplier_keep', 'supplier_merge')" class="btn btn-warning">Merge</button></div>
+                    </div>
+                    <table class="table table-striped">
+                        <thead><tr><th>Name</th><th>Actions</th></tr></thead>
+                        <tbody id="supplier_list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Editing Purchase -->
+    <div class="modal fade" id="editPurchaseModal" tabindex="-1" aria-labelledby="editPurchaseModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editPurchaseModalLabel">Edit Purchase</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit_purchase_id">
+                    <div class="row">
+                        <div class="col"><select id="edit_purchase_category" class="form-select"></select></div>
+                        <div class="col"><select id="edit_purchase_type" class="form-select"></select></div>
+                    </div>
+                    <div class="row">
+                        <div class="col"><select id="edit_purchase_size" class="form-select"></select></div>
+                        <div class="col"><select id="edit_purchase_supplier" class="form-select"></select></div>
+                    </div>
+                    <div class="row">
+                        <div class="col"><input type="number" id="edit_purchase_quantity" class="form-control" placeholder="Quantity" min="1"></div>
+                        <div class="col"><input type="number" id="edit_purchase_price" class="form-control" placeholder="Price"></div>
+                    </div>
+                    <div class="row">
+                        <div class="col"><input type="number" id="edit_purchase_tax" class="form-control" placeholder="Tax"></div>
+                        <div class="col"><input type="number" id="edit_purchase_carry_cost" class="form-control" placeholder="Carry Cost"></div>
+                    </div>
+                    <div class="row">
+                        <div class="col"><input type="number" id="edit_purchase_extra_cost" class="form-control" placeholder="Extra Cost"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="savePurchaseEdit()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Editing Ready to Sale -->
+    <div class="modal fade" id="editReadyModal" tabindex="-1" aria-labelledby="editReadyModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editReadyModalLabel">Edit Ready to Sale</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit_ready_id">
+                    <div class="row">
+                        <div class="col"><input type="number" id="edit_ready_quantity" class="form-control" placeholder="Quantity" min="1"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="saveReadyEdit()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Editing Sale -->
+    <div class="modal fade" id="editSaleModal" tabindex="-1" aria-labelledby="editSaleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editSaleModalLabel">Edit Sale</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit_sale_id">
+                    <div class="row">
+                        <div class="col"><input type="number" id="edit_sale_quantity" class="form-control" placeholder="Quantity" min="1"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="saveSaleEdit()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function fetchData(endpoint) {
+            try {
+                const response = await fetch(`/api/${endpoint}`);
+                if (!response.ok) throw new Error(`Failed to fetch ${endpoint}: ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error(`Error fetching ${endpoint}:`, error);
+                document.getElementById('report_error').textContent = `Error loading ${endpoint} data: ${error.message}`;
+                return [];
+            }
+        }
+
+        async function populateDropdown(id, endpoint, includeEmpty = true) {
+            const select = document.getElementById(id);
+            let data = await fetchData(endpoint);
+            if (endpoint === 'inventory_summary') {
+                data = data.filter(item => item.temp_inventory > 0);
+            } else if (endpoint === 'ready_to_sale') {
+                const summary = await fetchData('inventory_summary');
+                data = data.filter(item => {
+                    const sum = summary.find(s => s.purchase_id === item.purchase_id);
+                    return sum && sum.ready_inventory > 0;
+                });
+            }
+            select.innerHTML = includeEmpty ? `<option value="">Select ${endpoint.replace('inventory_summary', 'Purchase')}</option>` : '<option value="">All</option>';
+            data.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.purchase_id || item.id;
+                option.textContent = endpoint === 'inventory_summary' ? 
+                    `${item.category} - ${item.type} - ${item.size} - ${item.supplier} (Available: ${item.temp_inventory})` :
+                    endpoint === 'ready_to_sale' ? 
+                    `${item.category} - ${item.type} - ${item.size} - ${item.supplier} (Available: ${summary.find(s => s.purchase_id === item.purchase_id)?.ready_inventory || 0})` : 
+                    item.name;
+                select.appendChild(option);
+            });
+        }
+
+        async function loadMasterData(table) {
+            const data = await fetchData(table);
+            const tbody = document.getElementById(`${table.slice(0, -1)}_list`);
+            tbody.innerHTML = '';
+            data.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.name}</td>
+                    <td>
+                        <button onclick="editItem('${table}', '${item.id}', '${item.name}')" class="btn btn-sm btn-warning">Edit</button>
+                        <button onclick="deleteItem('${table}', '${item.id}')" class="btn btn-sm btn-danger">Delete</button>
+                    </td>`;
+                tbody.appendChild(row);
+            });
+            if (table === 'categories') populateDropdown('category_keep', table);
+            if (table === 'categories') populateDropdown('category_merge', table);
+            if (table === 'types') populateDropdown('type_keep', table);
+            if (table === 'types') populateDropdown('type_merge', table);
+            if (table === 'sizes') populateDropdown('size_keep', table);
+            if (table === 'sizes') populateDropdown('size_merge', table);
+            if (table === 'suppliers') populateDropdown('supplier_keep', table);
+            if (table === 'suppliers') populateDropdown('supplier_merge', table);
+        }
+
+        async function addNew(table, selectId, inputId) {
+            const name = document.getElementById(inputId).value.trim();
+            if (name) {
+                const response = await fetch(`/api/${table}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    document.getElementById(inputId).value = '';
+                    await Promise.all([
+                        populateDropdown(selectId, table),
+                        loadMasterData(table),
+                        populateDropdown(`purchase_${table.slice(0, -1)}`, table),
+                        populateDropdown(`report_${table.slice(0, -1)}`, table, false)
+                    ]);
+                } else {
+                    alert(result.error);
+                }
+            }
+        }
+
+        async function editItem(table, id, name) {
+            const newName = prompt(`Edit ${table.slice(0, -1)} name:`, name);
+            if (newName) {
+                const response = await fetch(`/api/${table}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, name: newName })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    await Promise.all([
+                        populateDropdown(`purchase_${table.slice(0, -1)}`, table),
+                        loadMasterData(table),
+                        loadPurchases(),
+                        loadReadyToSale(),
+                        loadSales(),
+                        loadReport()
+                    ]);
+                } else {
+                    alert(result.error);
+                }
+            }
+        }
+
+        async function deleteItem(table, id) {
+            if (confirm(`Delete ${table.slice(0, -1)}?`)) {
+                const response = await fetch(`/api/${table}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    await Promise.all([
+                        populateDropdown(`purchase_${table.slice(0, -1)}`, table),
+                        loadMasterData(table),
+                        loadPurchases(),
+                        loadReadyToSale(),
+                        loadSales(),
+                        loadReport()
+                    ]);
+                } else {
+                    alert(result.error);
+                }
+            }
+        }
+
+        async function merge(table, keepId, mergeId) {
+            const keep = document.getElementById(keepId).value;
+            const merge = document.getElementById(mergeId).value;
+            if (keep && merge && confirm(`Merge ${table.slice(0, -1)} into selected item?`)) {
+                const response = await fetch(`/api/${table}/merge`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keep_id: keep, merge_id: merge })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    await Promise.all([
+                        populateDropdown(`purchase_${table.slice(0, -1)}`, table),
+                        populateDropdown(`${table.slice(0, -1)}_keep`, table),
+                        populateDropdown(`${table.slice(0, -1)}_merge`, table),
+                        loadMasterData(table),
+                        loadPurchases(),
+                        loadReadyToSale(),
+                        loadSales(),
+                        loadReport()
+                    ]);
+                } else {
+                    alert(result.error);
+                }
+            }
+        }
+
+        async function loadPurchases() {
+            const purchases = await fetchData('purchases');
+            const summary = await fetchData('inventory_summary');
+            const tbody = document.getElementById('purchase_list');
+            tbody.innerHTML = '';
+            let totalCost = 0, totalEntries = 0;
+            purchases.forEach(p => {
+                totalEntries++;
+                totalCost += (p.price || 0) + (p.tax || 0) + (p.carry_cost || 0) + (p.extra_cost || 0);
+                const sum = summary.find(s => s.purchase_id === p.id);
+                const tempInventory = sum ? sum.temp_inventory : p.quantity;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${p.category}</td><td>${p.type}</td><td>${p.size}</td><td>${p.supplier}</td>
+                    <td>${p.quantity}</td><td>${p.price || 0}</td><td>${p.tax || 0}</td>
+                    <td>${p.carry_cost || 0}</td><td>${p.extra_cost || 0}</td><td>${p.date}</td>
+                    <td>
+                        <input type="number" id="qty_${p.id}" placeholder="Qty" min="1" max="${tempInventory}">
+                        <button onclick="moveToReady('${p.id}', ${tempInventory})" class="btn btn-sm btn-primary">To Ready</button>
+                        <button onclick="moveToSale('${p.id}', ${tempInventory})" class="btn btn-sm btn-success">To Sale</button>
+                        <button onclick="editPurchase('${p.id}', '${p.category}', '${p.type}', '${p.size}', '${p.supplier}', ${p.quantity}, ${p.price || 0}, ${p.tax || 0}, ${p.carry_cost || 0}, ${p.extra_cost || 0})" 
+                                class="btn btn-sm btn-warning">Edit</button>
+                        <button onclick="deletePurchase('${p.id}')" class="btn btn-sm btn-danger">Delete</button>
+                    </td>`;
+                tbody.appendChild(row);
+            });
+            document.getElementById('total_cost').textContent = totalCost.toFixed(2);
+            document.getElementById('total_entries').textContent = totalEntries;
+            await populateDropdown('ready_purchase_id', 'inventory_summary');
+        }
+
+        async function editPurchase(id, category, type, size, supplier, quantity, price, tax, carry_cost, extra_cost) {
+            const modal = new bootstrap.Modal(document.getElementById('editPurchaseModal'));
+            document.getElementById('edit_purchase_id').value = id;
+            document.getElementById('edit_purchase_quantity').value = quantity;
+            document.getElementById('edit_purchase_price').value = price;
+            document.getElementById('edit_purchase_tax').value = tax;
+            document.getElementById('edit_purchase_carry_cost').value = carry_cost;
+            document.getElementById('edit_purchase_extra_cost').value = extra_cost;
+            await Promise.all([
+                populateDropdown('edit_purchase_category', 'categories'),
+                populateDropdown('edit_purchase_type', 'types'),
+                populateDropdown('edit_purchase_size', 'sizes'),
+                populateDropdown('edit_purchase_supplier', 'suppliers')
+            ]);
+            const categories = await fetchData('categories');
+            const types = await fetchData('types');
+            const sizes = await fetchData('sizes');
+            const suppliers = await fetchData('suppliers');
+            document.getElementById('edit_purchase_category').value = categories.find(c => c.name === category)?.id || '';
+            document.getElementById('edit_purchase_type').value = types.find(t => t.name === type)?.id || '';
+            document.getElementById('edit_purchase_size').value = sizes.find(s => s.name === size)?.id || '';
+            document.getElementById('edit_purchase_supplier').value = suppliers.find(s => s.name === supplier)?.id || '';
+            modal.show();
+        }
+
+        async function savePurchaseEdit() {
+            const id = document.getElementById('edit_purchase_id').value;
+            const response = await fetch('/api/purchases', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id,
+                    category_id: document.getElementById('edit_purchase_category').value,
+                    type_id: document.getElementById('edit_purchase_type').value,
+                    size_id: document.getElementById('edit_purchase_size').value,
+                    supplier_id: document.getElementById('edit_purchase_supplier').value,
+                    quantity: parseInt(document.getElementById('edit_purchase_quantity').value),
+                    price: parseFloat(document.getElementById('edit_purchase_price').value) || 0,
+                    tax: parseFloat(document.getElementById('edit_purchase_tax').value) || 0,
+                    carry_cost: parseFloat(document.getElementById('edit_purchase_carry_cost').value) || 0,
+                    extra_cost: parseFloat(document.getElementById('edit_purchase_extra_cost').value) || 0
+                })
+            });
+            const result = await response.json();
+            if (response.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('editPurchaseModal')).hide();
+                await Promise.all([
+                    loadPurchases(),
+                    loadReadyToSale(),
+                    loadSales(),
+                    loadReport()
+                ]);
+            } else {
+                alert(result.error);
+            }
+        }
+
+        async function deletePurchase(id) {
+            if (confirm('Delete purchase?')) {
+                const response = await fetch('/api/purchases', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    await Promise.all([
+                        loadPurchases(),
+                        loadReadyToSale(),
+                        loadSales(),
+                        loadReport()
+                    ]);
+                } else {
+                    alert(result.error);
+                }
+            }
+        }
+
+        async function loadReadyToSale() {
+            const items = await fetchData('ready_to_sale');
+            const summary = await fetchData('inventory_summary');
+            const tbody = document.getElementById('ready_to_sale_list');
+            tbody.innerHTML = '';
+            let totalEntries = 0, tempInventory = 0, readyInventory = 0;
+            items.forEach(item => {
+                const sum = summary.find(s => s.purchase_id === item.purchase_id);
+                if (sum && sum.ready_inventory >= 0) {
+                    totalEntries++;
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${item.category}</td><td>${item.type}</td><td>${item.size}</td>
+                        <td>${item.supplier}</td><td>${item.quantity}</td><td>${sum.ready_inventory}</td><td>${item.date}</td>
+                        <td>
+                            <input type="number" id="sale_qty_${item.id}" placeholder="Qty" min="1" max="${sum.ready_inventory}">
+                            <button onclick="moveToSaleFromReady('${item.id}', ${sum.ready_inventory})" 
+                                    class="btn btn-sm btn-success">To Sale</button>
+                            <button onclick="editReady('${item.id}', ${item.quantity}, '${item.purchase_id}')" 
+                                    class="btn btn-sm btn-warning">Edit</button>
+                            <button onclick="deleteReady('${item.id}')" class="btn btn-sm btn-danger">Delete</button>
+                        </td>`;
+                    tbody.appendChild(row);
+                }
+            });
+            summary.forEach(s => {
+                tempInventory += s.temp_inventory;
+                readyInventory += s.ready_inventory;
+            });
+            document.getElementById('ready_total_entries').textContent = totalEntries;
+            document.getElementById('temp_inventory').textContent = tempInventory;
+            document.getElementById('ready_inventory').textContent = readyInventory;
+            await populateDropdown('sale_ready_id', 'ready_to_sale');
+        }
+
+        async function editReady(id, quantity, purchase_id) {
+            const modal = new bootstrap.Modal(document.getElementById('editReadyModal'));
+            document.getElementById('edit_ready_id').value = id;
+            document.getElementById('edit_ready_quantity').value = quantity;
+            const summary = await fetchData('inventory_summary');
+            const sum = summary.find(s => s.purchase_id === purchase_id);
+            document.getElementById('edit_ready_quantity').setAttribute('max', sum ? sum.temp_inventory + quantity : quantity);
+            modal.show();
+        }
+
+        async function saveReadyEdit() {
+            const id = document.getElementById('edit_ready_id').value;
+            const quantity = parseInt(document.getElementById('edit_ready_quantity').value);
+            const response = await fetch('/api/ready_to_sale', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, quantity })
+            });
+            const result = await response.json();
+            if (response.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('editReadyModal')).hide();
+                await Promise.all([
+                    loadReadyToSale(),
+                    loadPurchases(),
+                    loadSales(),
+                    loadReport()
+                ]);
+            } else {
+                alert(result.error);
+            }
+        }
+
+        async function deleteReady(id) {
+            if (confirm('Delete Ready to Sale?')) {
+                const response = await fetch('/api/ready_to_sale', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    await Promise.all([
+                        loadReadyToSale(),
+                        loadPurchases(),
+                        loadSales(),
+                        loadReport()
+                    ]);
+                } else {
+                    alert(result.error);
+                }
+            }
+        }
+
+        async function loadSales() {
+            const sales = await fetchData('sales');
+            const items = await fetchData('ready_to_sale');
+            const summary = await fetchData('inventory_summary');
+            const tbody = document.getElementById('sale_list');
+            tbody.innerHTML = '';
+            let totalEntries = 0;
+            sales.forEach(s => {
+                totalEntries++;
+                const item = items.find(i => i.id === s.ready_to_sale_id);
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${s.category}</td><td>${s.type}</td><td>${s.size}</td>
+                    <td>${s.supplier}</td><td>${s.quantity}</td><td>${s.date}</td>
+                    <td>
+                        <button onclick="editSale('${s.id}', ${s.quantity}, '${s.ready_to_sale_id}')" 
+                                class="btn btn-sm btn-warning">Edit</button>
+                        <button onclick="deleteSale('${s.id}')" class="btn btn-sm btn-danger">Delete</button>
+                    </td>`;
+                tbody.appendChild(row);
+            });
+            document.getElementById('sale_total_entries').textContent = totalEntries;
+        }
+
+        async function editSale(id, quantity, ready_to_sale_id) {
+            const modal = new bootstrap.Modal(document.getElementById('editSaleModal'));
+            document.getElementById('edit_sale_id').value = id;
+            document.getElementById('edit_sale_quantity').value = quantity;
+            const items = await fetchData('ready_to_sale');
+            const summary = await fetchData('inventory_summary');
+            const item = items.find(i => i.id === ready_to_sale_id);
+            if (item) {
+                const sum = summary.find(s => s.purchase_id === item.purchase_id);
+                document.getElementById('edit_sale_quantity').setAttribute('max', sum ? sum.ready_inventory + quantity : quantity);
+            }
+            modal.show();
+        }
+
+        async function saveSaleEdit() {
+            const id = document.getElementById('edit_sale_id').value;
+            const quantity = parseInt(document.getElementById('edit_sale_quantity').value);
+            const response = await fetch('/api/sales', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, quantity })
+            });
+            const result = await response.json();
+            if (response.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('editSaleModal')).hide();
+                await Promise.all([
+                    loadSales(),
+                    loadReadyToSale(),
+                    loadPurchases(),
+                    loadReport()
+                ]);
+            } else {
+                alert(result.error);
+            }
+        }
+
+        async function deleteSale(id) {
+            if (confirm('Delete Sale?')) {
+                const response = await fetch('/api/sales', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    await Promise.all([
+                        loadSales(),
+                        loadReadyToSale(),
+                        loadPurchases(),
+                        loadReport()
+                    ]);
+                } else {
+                    alert(result.error);
+                }
+            }
+        }
+
+        async function loadReport() {
+            const report = await fetchData('report');
+            const tbody = document.getElementById('report_list');
+            const errorDiv = document.getElementById('report_error');
+            tbody.innerHTML = '';
+            errorDiv.textContent = '';
+            
+            if (!report || report.length === 0) {
+                errorDiv.textContent = 'No report data available. Try adding purchases to populate the report.';
+                return;
+            }
+
+            console.log('Report data:', report); // Debugging
+            const categoryFilter = document.getElementById('report_category').value;
+            const typeFilter = document.getElementById('report_type').value;
+            const sizeFilter = document.getElementById('report_size').value;
+            const supplierFilter = document.getElementById('report_supplier').value;
+            
+            let filteredRows = 0;
+            report.forEach(r => {
+                if ((!categoryFilter || r.category === categoryFilter) &&
+                    (!typeFilter || r.type === typeFilter) &&
+                    (!sizeFilter || r.size === sizeFilter) &&
+                    (!supplierFilter || r.supplier === supplierFilter)) {
+                    filteredRows++;
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${r.category || 'N/A'}</td>
+                        <td>${r.type || 'N/A'}</td>
+                        <td>${r.size || 'N/A'}</td>
+                        <td>${r.supplier || 'N/A'}</td>
+                        <td>${r.total_purchase || 0}</td>
+                        <td>${r.total_ready || 0}</td>
+                        <td>${r.total_sale || 0}</td>
+                        <td>${r.inventory || 0}</td>
+                        <td>${r.temporary_purchase_stock || 0}</td>`;
+                    tbody.appendChild(row);
+                }
+            });
+
+            if (filteredRows === 0) {
+                errorDiv.textContent = 'No data matches the selected filters. Try adjusting the filters or adding new data.';
+            }
+        }
+
+        async function moveToReady(purchaseId, maxQty) {
+            const qty = parseInt(document.getElementById(`qty_${purchaseId}`).value);
+            if (qty > 0 && qty <= maxQty) {
+                const response = await fetch('/api/ready_to_sale', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        purchase_id: purchaseId,
+                        quantity: qty
+                    })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    await Promise.all([
+                        loadPurchases(),
+                        loadReadyToSale(),
+                        loadReport()
+                    ]);
+                } else {
+                    alert(result.error);
+                }
+            } else {
+                alert('Quantity exceeds available inventory');
+            }
+        }
+
+        async function moveToSale(purchaseId, maxQty) {
+            const qty = parseInt(document.getElementById(`qty_${purchaseId}`).value);
+            if (qty > 0 && qty <= maxQty) {
+                const readyResponse = await fetch('/api/ready_to_sale', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        purchase_id: purchaseId,
+                        quantity: qty
+                    })
+                });
+                const readyData = await fetchData('ready_to_sale');
+                const readyId = readyData[readyData.length - 1].id;
+                const saleResponse = await fetch('/api/sales', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ready_to_sale_id: readyId,
+                        quantity: qty
+                    })
+                });
+                const saleResult = await saleResponse.json();
+                if (saleResponse.ok) {
+                    await Promise.all([
+                        loadPurchases(),
+                        loadReadyToSale(),
+                        loadSales(),
+                        loadReport()
+                    ]);
+                } else {
+                    alert(saleResult.error);
+                }
+            } else {
+                alert('Quantity exceeds available inventory');
+            }
+        }
+
+        async function moveToSaleFromReady(readyId, maxQty) {
+            const qty = parseInt(document.getElementById(`sale_qty_${readyId}`).value);
+            if (qty > 0 && qty <= maxQty) {
+                const response = await fetch('/api/sales', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ready_to_sale_id: readyId,
+                        quantity: qty
+                    })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    await Promise.all([
+                        loadReadyToSale(),
+                        loadSales(),
+                        loadPurchases(),
+                        loadReport()
+                    ]);
+                } else {
+                    alert(result.error);
+                }
+            } else {
+                alert('Quantity exceeds available inventory');
+            }
+        }
+
+        document.getElementById('purchase_form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const response = await fetch('/api/purchases', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    category_id: document.getElementById('purchase_category').value,
+                    type_id: document.getElementById('purchase_type').value,
+                    size_id: document.getElementById('purchase_size').value,
+                    supplier_id: document.getElementById('purchase_supplier').value,
+                    quantity: parseInt(document.getElementById('purchase_quantity').value),
+                    price: parseFloat(document.getElementById('purchase_price').value) || 0,
+                    tax: parseFloat(document.getElementById('purchase_tax').value) || 0,
+                    carry_cost: parseFloat(document.getElementById('purchase_carry_cost').value) || 0,
+                    extra_cost: parseFloat(document.getElementById('purchase_extra_cost').value) || 0
+                })
+            });
+            const result = await response.json();
+            if (response.ok) {
+                document.getElementById('purchase_form').reset();
+                await Promise.all([
+                    loadPurchases(),
+                    loadReport()
+                ]);
+            } else {
+                alert(result.error);
+            }
+        });
+
+        document.getElementById('ready_to_sale_form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const purchaseId = document.getElementById('ready_purchase_id').value;
+            const quantity = parseInt(document.getElementById('ready_quantity').value);
+            const summary = await fetchData('inventory_summary');
+            const item = summary.find(s => s.purchase_id === purchaseId);
+            if (!item) {
+                alert('Invalid purchase selected');
+                return;
+            }
+            if (quantity > 0 && quantity <= item.temp_inventory) {
+                const response = await fetch('/api/ready_to_sale', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        purchase_id: purchaseId,
+                        quantity: quantity
+                    })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    document.getElementById('ready_to_sale_form').reset();
+                    document.getElementById('ready_quantity').removeAttribute('max');
+                    await Promise.all([
+                        loadReadyToSale(),
+                        loadPurchases(),
+                        loadReport()
+                    ]);
+                } else {
+                    alert(result.error);
+                }
+            } else {
+                alert('Quantity exceeds available inventory');
+            }
+        });
+
+        document.getElementById('sale_form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const readyId = document.getElementById('sale_ready_id').value;
+            const quantity = parseInt(document.getElementById('sale_quantity').value);
+            if (!readyId) {
+                alert('Please select a Ready to Sale entry');
+                return;
+            }
+            const items = await fetchData('ready_to_sale');
+            const summary = await fetchData('inventory_summary');
+            const item = items.find(i => i.id === readyId);
+            if (!item) {
+                alert('Invalid Ready to Sale entry selected');
+                return;
+            }
+            const sum = summary.find(s => s.purchase_id === item.purchase_id);
+            if (!sum) {
+                alert('Inventory data not found for selected entry');
+                return;
+            }
+            if (quantity > 0 && quantity <= sum.ready_inventory) {
+                const response = await fetch('/api/sales', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ready_to_sale_id: readyId,
+                        quantity: quantity
+                    })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    document.getElementById('sale_form').reset();
+                    document.getElementById('sale_quantity').removeAttribute('max');
+                    await Promise.all([
+                        loadSales(),
+                        loadReadyToSale(),
+                        loadPurchases(),
+                        loadReport()
+                    ]);
+                } else {
+                    alert(result.error);
+                }
+            } else {
+                alert('Quantity exceeds available inventory');
+            }
+        });
+
+        document.getElementById('ready_purchase_id').addEventListener('change', async () => {
+            const purchaseId = document.getElementById('ready_purchase_id').value;
+            const quantityInput = document.getElementById('ready_quantity');
+            if (purchaseId) {
+                const summary = await fetchData('inventory_summary');
+                const item = summary.find(s => s.purchase_id === purchaseId);
+                if (item) {
+                    quantityInput.setAttribute('max', item.temp_inventory);
+                } else {
+                    quantityInput.removeAttribute('max');
+                }
+            } else {
+                quantityInput.removeAttribute('max');
+            }
+        });
+
+        document.getElementById('sale_ready_id').addEventListener('change', async () => {
+            const readyId = document.getElementById('sale_ready_id').value;
+            const quantityInput = document.getElementById('sale_quantity');
+            if (readyId) {
+                const items = await fetchData('ready_to_sale');
+                const summary = await fetchData('inventory_summary');
+                const item = items.find(i => i.id === readyId);
+                if (item) {
+                    const sum = summary.find(s => s.purchase_id === item.purchase_id);
+                    if (sum) {
+                        quantityInput.setAttribute('max', sum.ready_inventory);
+                    } else {
+                        quantityInput.removeAttribute('max');
+                    }
+                } else {
+                    quantityInput.removeAttribute('max');
+                }
+            } else {
+                quantityInput.removeAttribute('max');
+            }
+        });
+
+        document.getElementById('report_category').addEventListener('change', loadReport);
+        document.getElementById('report_type').addEventListener('change', loadReport);
+        document.getElementById('report_size').addEventListener('change', loadReport);
+        document.getElementById('report_supplier').addEventListener('change', loadReport);
+
+        async function init() {
+    try {
+        // Set default values for report filters
+        document.getElementById('report_category').value = '';
+        document.getElementById('report_type').value = '';
+        document.getElementById('report_size').value = '';
+        document.getElementById('report_supplier').value = '';
+        
+        const tasks = [
+            populateDropdown('purchase_category', 'categories'),
+            populateDropdown('purchase_type', 'types'),
+            populateDropdown('purchase_size', 'sizes'),
+            populateDropdown('purchase_supplier', 'suppliers'),
+            populateDropdown('ready_purchase_id', 'inventory_summary'),
+            populateDropdown('sale_ready_id', 'ready_to_sale'),
+            populateDropdown('report_category', 'categories', false),
+            populateDropdown('report_type', 'types', false),
+            populateDropdown('report_size', 'sizes', false),
+            populateDropdown('report_supplier', 'suppliers', false),
+            loadMasterData('categories'),
+            loadMasterData('types'),
+            loadMasterData('sizes'),
+            loadMasterData('suppliers'),
+            loadPurchases(),
+            loadReadyToSale(),
+            loadSales(),
+            loadReport()
+        ];
+
+        // Run tasks and handle individual failures
+        const results = await Promise.allSettled(tasks);
+        results.forEach((result, index) => {
+            if (result.status === 'rejected') {
+                console.error(`Task ${index} (${tasks[index].name || 'unknown'}) failed:`, result.reason);
+                document.getElementById('report_error').textContent += `Error in task ${index + 1}: ${result.reason.message}. `;
+            }
+        });
+
+        // If critical tasks fail, show a general error
+        if (results.some(result => result.status === 'rejected')) {
+            document.getElementById('report_error').textContent += 'Some data failed to load. Please refresh or check the console for details.';
+        }
+    } catch (error) {
+        console.error('Unexpected initialization error:', error);
+        document.getElementById('report_error').textContent = 'Unexpected error during initialization. Please refresh the page.';
+    }
+}
+
+        init();
+    </script>
+</body>
+</html>
