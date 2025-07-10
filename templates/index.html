@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <!-- jQuery (required by DataTables) -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
     <style>
         body { padding: 20px; }
         .tab-content { margin-top: 20px; }
@@ -69,7 +77,7 @@
                 <button type="submit" class="btn btn-primary">Add Purchase</button>
             </form>
             <h3>Purchase List</h3>
-            <table class="table table-striped">
+            <table id="purchase_list_table" class="table table-striped">
                 <thead>
                     <tr>
                         <th>Category</th><th>Type</th><th>Size</th><th>Supplier</th>
@@ -88,8 +96,8 @@
                    Temporary Inventory: <span id="temp_inventory">0</span> | 
                    Ready to Sale Stock: <span id="ready_inventory">0</span></p>
             </div>
-            <h3>Add to Ready to Sale</h3>
-            <form id="ready_to_sale_form">
+            <!--<h3>Add to Ready to Sale</h3>-->
+            <form id="ready_to_sale_form" style="display:none;">
                 <div class="row mb-3">
                     <div class="col">
                         <select id="ready_purchase_id" class="form-select" required>
@@ -103,7 +111,7 @@
                 <button type="submit" class="btn btn-primary">Add to Ready to Sale</button>
             </form>
             <h3>Ready to Sale List</h3>
-            <table class="table table-striped">
+            <table id="ready_to_sale_table" class="table table-striped">
                 <thead>
                     <tr>
                         <th>Category</th><th>Type</th><th>Size</th><th>Supplier</th>
@@ -121,8 +129,8 @@
                 <h3>Sale Summary</h3>
                 <p>Total Entries: <span id="sale_total_entries">0</span></p>
             </div>
-            <h3>Add Sale</h3>
-            <form id="sale_form">
+            <!--<h3>Add Sale</h3>-->
+            <form id="sale_form" style="display:none;">
                 <div class="row mb-3">
                     <div class="col">
                         <select id="sale_ready_id" class="form-select" required>
@@ -135,8 +143,20 @@
                 </div>
                 <button type="submit" class="btn btn-primary">Add Sale</button>
             </form>
+            
+            <h3>SKU-wise Sales Summary</h3>
+            <table id="sales_sku_summary_table" class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Category</th><th>Type</th><th>Size</th><th>Supplier</th><th>Total Sold</th>
+                    </tr>
+                </thead>
+                <tbody id="sales_sku_summary_list"></tbody>
+            </table>
+
             <h3>Sale List</h3>
-            <table class="table table-striped">
+
+            <table id= "sale_list_table" class="table table-striped">
                 <thead>
                     <tr>
                         <th>Category</th><th>Type</th><th>Size</th><th>Supplier</th>
@@ -630,6 +650,12 @@
                     </td>`;
                 tbody.appendChild(row);
             });
+
+            
+            $('#purchase_list_table').DataTable().destroy(); // Destroy previous instance
+            $('#purchase_list_table').DataTable();           // Re-initialize
+
+
             document.getElementById('total_cost').textContent = totalCost.toFixed(2);
             document.getElementById('total_entries').textContent = totalEntries;
             await populateDropdown('ready_purchase_id', 'inventory_summary');
@@ -738,6 +764,10 @@ async function loadReadyToSale() {
         }
     }
 
+    
+        $('#ready_to_sale_table').DataTable().destroy(); // Destroy previous instance
+        $('#ready_to_sale_table').DataTable();  
+
     document.getElementById('ready_total_entries').textContent = totalEntries;
     document.getElementById('temp_inventory').textContent = tempInventory;
     document.getElementById('ready_inventory').textContent = readyStock;
@@ -795,6 +825,25 @@ async function loadReadyToSale() {
                     </td>`;
                 tbody.appendChild(row);
             });
+
+            const summary = await fetchData('sales_sku_summary');
+            const skuTable = document.getElementById('sales_sku_summary_list');
+            skuTable.innerHTML = '';
+
+            summary.forEach(s => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${s.category}</td><td>${s.type}</td><td>${s.size}</td><td>${s.supplier}</td><td>${s.total_sold}</td>
+                `;
+                skuTable.appendChild(row);
+            });
+
+            $('#sale_list_table').DataTable().destroy();
+            $('#sale_list_table').DataTable();
+
+            $('#sales_sku_summary_table').DataTable().destroy();
+            $('#sales_sku_summary_table').DataTable();
+
         }
 
         async function editSale(id) {
@@ -1037,6 +1086,8 @@ async function loadReadyToSale() {
         }
 
         init();
+        
+
     </script>
 </body>
 </html>

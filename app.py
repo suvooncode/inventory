@@ -248,6 +248,8 @@ def manage_returns():
             c.execute('DELETE FROM returns WHERE id = ?', (data['id'],))
             conn.commit()
             return jsonify({'message': 'Return deleted'})
+        
+        
 @app.route('/api/ready_to_sale', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def manage_ready_to_sale():
     with sqlite3.connect('inventory.db') as conn:
@@ -416,20 +418,20 @@ def manage_sales():
         c = conn.cursor()
         if request.method == 'GET':
             c.execute('''
-                SELECT r.id, p.id, c.name, t.name, s.name, su.name, r.quantity, r.date
-                FROM ready_to_sale r
+                SELECT sa.id, r.id, p.id, c.name, t.name, s.name, su.name, sa.quantity, sa.date
+                FROM sales sa
+                JOIN ready_to_sale r ON sa.ready_to_sale_id = r.id
                 JOIN purchases p ON r.purchase_id = p.id
                 JOIN categories c ON p.category_id = c.id
                 JOIN types t ON p.type_id = t.id
                 JOIN sizes s ON p.size_id = s.id
                 JOIN suppliers su ON p.supplier_id = su.id
-                LEFT JOIN sales sa ON sa.ready_to_sale_id = r.id
-                GROUP BY r.id
-                HAVING r.quantity > COALESCE(SUM(sa.quantity), 0)
             ''')
 
-            return jsonify([dict(zip(['purchase_id', 'category', 'type', 'size', 'supplier', 'quantity', 'date'], row)) for row in c.fetchall()])
-        
+            return jsonify([dict(zip([
+                'id', 'ready_id', 'purchase_id', 'category', 'type', 'size', 'supplier', 'quantity', 'date'
+            ], row)) for row in c.fetchall()])
+
         if request.method == 'POST':
             data = request.json
             c.execute('''
@@ -477,6 +479,33 @@ def manage_sales():
             c.execute('DELETE FROM sales WHERE id = ?', (data['id'],))
             conn.commit()
             return jsonify({'message': 'Sale deleted'})
+
+
+@app.route('/api/sales_sku_summary', methods=['GET'])
+def sales_sku_summary():
+    with sqlite3.connect('inventory.db') as conn:
+        c = conn.cursor()
+        c.execute('''
+            SELECT 
+                c.name AS category,
+                t.name AS type,
+                s.name AS size,
+                su.name AS supplier,
+                SUM(sa.quantity) AS total_sold
+            FROM sales sa
+            JOIN ready_to_sale rts ON sa.ready_to_sale_id = rts.id
+            JOIN purchases p ON rts.purchase_id = p.id
+            JOIN categories c ON p.category_id = c.id
+            JOIN types t ON p.type_id = t.id
+            JOIN sizes s ON p.size_id = s.id
+            JOIN suppliers su ON p.supplier_id = su.id
+            GROUP BY c.id, t.id, s.id, su.id
+        ''')
+        return jsonify([
+            dict(zip(['category', 'type', 'size', 'supplier', 'total_sold'], row))
+            for row in c.fetchall()
+        ])
+
 
 @app.route('/api/inventory_summary', methods=['GET'])
 def inventory_summary():
