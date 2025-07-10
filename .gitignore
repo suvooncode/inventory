@@ -1,0 +1,17 @@
+# Ignore folders (end with /)
+build/
+
+# Ignore specific files
+file_name.ext
+
+*.spec
+
+# Ignore all `.log` files
+*.log
+
+# Ignore everything inside temp/ but not the folder itself
+temp/*
+
+# Ignore all Python compiled files
+__pycache__/
+*.pyc
