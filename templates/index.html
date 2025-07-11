@@ -31,9 +31,12 @@
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sale">Sale</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#return">Return</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#report">Report</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#Bill">Bills</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#master_data">Master Data</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#setting">Setting</a></li>
     </ul>
+
+    
 
     <div class="tab-content">
         <div id="purchase" class="tab-pane fade show active">
@@ -333,7 +336,68 @@
         <div id="setting" class="tab-pane fade">
             <h3>Settings</h3>
             <button class="btn btn-danger" onclick="truncateDatabase()">Clear Database</button>
+
+            <div id="category" class="">
+                <div class="summary">
+                    <h3>Category Management</h3>
+                    <p>Total Categories: <span id="category_total_entries">0</span></p>
+                </div>
+
+                <h3>Add Category</h3>
+                <form id="category_form">
+                    <div class="row mb-3">
+                        <div class="col">
+                            <input type="text" id="category_name" class="form-control" placeholder="Category Name" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Category</button>
+                </form>
+
+                <h3>Category List</h3>
+                <table id="category_table" class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th><th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="category_list"></tbody>
+                </table>
+            </div>
+
         </div>
+
+
+        <div id="Bill" class="tab-pane fade">
+            <h2>🧾 Invoice PDF Extractor & Resizer</h2>
+
+                <div class="top-panel">
+                <div>
+                    <form id="upload-form" enctype="multipart/form-data">
+                    <label>Upload PDF Invoices:</label><br>
+                    <input type="file" name="pdfs" multiple accept=".pdf" required>
+                    <button type="submit">Upload & Extract</button>
+                    </form>
+                </div>
+
+                <div>
+                    <label>Resize PDF for Print:</label><br>
+                    <input type="text" id="filename" placeholder="example.pdf">
+                    <select id="template">
+                    <option value="Amazon">Amazon (10×15 cm)</option>
+                    <option value="Meesho">Meesho (8×16 cm)</option>
+                    <option value="Custom">Custom</option>
+                    </select>
+                    <input type="number" id="width" value="10" step="0.1"> cm
+                    <input type="number" id="height" value="15" step="0.1"> cm
+                    <button onclick="previewResizedPDF()">👁️ Preview PDF</button>
+                </div>
+                </div>
+
+                <div id="result"></div>
+
+        </div>
+
+
     </div>
 
     <!-- Modals -->
@@ -462,6 +526,166 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+
+// bills js start
+async function postData(endpoint, data) {
+    try {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error(`Post ${endpoint}:`, error);
+        alert(`Error saving: ${error.message}`);
+        return { message: "Failed" };
+    }
+}
+
+async function fetchData(endpoint) {
+    try {
+        const response = await fetch(`/api/${endpoint}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error(`Fetch ${endpoint}:`, error);
+        document.getElementById('report_error').textContent = `Error loading ${endpoint}: ${error.message}`;
+        return [];
+    }
+}
+
+document.getElementById('upload-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const response = await fetch('/upload', { method: 'POST', body: formData });
+    const result = await response.json();
+
+    const data = result.data;
+    const uploadedFiles = result.uploaded_files;
+    if (uploadedFiles.length) document.getElementById('filename').value = uploadedFiles[0];
+
+    if (!data.length) {
+        document.getElementById('result').innerText = 'No data extracted.';
+        return;
+    }
+
+    renderEditableTable(data);
+});
+
+function renderEditableTable(data) {
+    const keys = Object.keys(data[0]);
+    const table = document.createElement('table');
+    const headerRow = document.createElement('tr');
+
+    const selectAll = document.createElement('input');
+    selectAll.type = 'checkbox';
+    selectAll.onclick = () => {
+        document.querySelectorAll('.row-check').forEach(cb => cb.checked = selectAll.checked);
+    };
+
+    headerRow.innerHTML = `<th><input type="checkbox" id="select-all"></th>`;
+    keys.forEach(k => {
+        const th = document.createElement('th');
+        th.innerText = k;
+        headerRow.appendChild(th);
+    });
+    headerRow.innerHTML += '<th>Save</th>';
+    table.appendChild(headerRow);
+
+    data.forEach((row, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td><input type="checkbox" class="row-check"></td>`;
+
+        keys.forEach(k => {
+            const td = document.createElement('td');
+            td.innerHTML = `<input type="text" name="${k}" value="${row[k] || ''}">`;
+            tr.appendChild(td);
+        });
+
+        const saveTd = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.innerText = 'Save';
+        btn.onclick = async () => {
+            const inputs = tr.querySelectorAll('input[type="text"]');
+            const rowData = {};
+            inputs.forEach(input => {
+                rowData[input.name] = input.value;
+            });
+            const res = await postData('/save_selected', { rows: [rowData] });
+            alert(res.message);
+        };
+        saveTd.appendChild(btn);
+        tr.appendChild(saveTd);
+        table.appendChild(tr);
+    });
+
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = '';
+    resultDiv.appendChild(table);
+
+    const saveAllBtn = document.createElement('button');
+    saveAllBtn.innerText = '💾 Save Selected Rows';
+    saveAllBtn.id = 'save-selected';
+    resultDiv.appendChild(saveAllBtn);
+
+    const downloadLink = document.createElement('a');
+    downloadLink.href = '/download';
+    downloadLink.innerText = '📥 Download Excel';
+    downloadLink.style.display = 'inline-block';
+    downloadLink.style.marginTop = '10px';
+    resultDiv.appendChild(downloadLink);
+}
+
+document.addEventListener('click', async function (e) {
+    if (e.target && e.target.id === 'save-selected') {
+        const selectedRows = [];
+        const rows = document.querySelectorAll('table tr');
+
+        rows.forEach((row, idx) => {
+            if (idx === 0) return;
+            const checkbox = row.querySelector('.row-check');
+            if (checkbox && checkbox.checked) {
+                const inputs = row.querySelectorAll('input[type="text"]');
+                const rowData = {};
+                inputs.forEach(input => {
+                    rowData[input.name] = input.value;
+                });
+                selectedRows.push(rowData);
+            }
+        });
+
+        if (!selectedRows.length) return alert('No rows selected!');
+        const res = await postData('/save_selected', { rows: selectedRows });
+        alert(res.message);
+    }
+});
+
+// Handle template dropdown
+document.getElementById('template').addEventListener('change', () => {
+    const t = document.getElementById('template').value;
+    const w = document.getElementById('width'), h = document.getElementById('height');
+    if (t === 'Amazon') { w.value = 10; h.value = 15; }
+    else if (t === 'Meesho') { w.value = 8; h.value = 16; }
+});
+
+function previewResizedPDF() {
+    const file = document.getElementById('filename').value.trim();
+    const width = document.getElementById('width').value;
+    const height = document.getElementById('height').value;
+    if (!file) return alert('Enter filename.');
+    window.open(`/resize/${file}?width=${width}&height=${height}&preview=true`, '_blank');
+}
+
+
+// bills js end
+
+
+
         async function fetchData(endpoint) {
             try {
                 const response = await fetch(`/api/${endpoint}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
@@ -977,6 +1201,55 @@ async function loadReadyToSale() {
             });
         }
 
+        async function loadCategories() {
+                const categories = await fetchData('categories');
+                const tbody = document.getElementById('category_list');
+                tbody.innerHTML = '';
+                document.getElementById('category_total_entries').textContent = categories.length;
+
+                categories.forEach(cat => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${cat.name}</td>
+                        <td>${cat.active ? 'Active' : 'Inactive'}</td>
+                        <td>
+                            <button class="btn btn-sm ${cat.active ? 'btn-warning' : 'btn-success'}"
+                                    onclick="toggleCategoryStatus('${cat.id}', ${cat.active})">
+                                ${cat.active ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteCategory('${cat.id}')">
+                                Delete
+                            </button>
+                        </td>`;
+                    tbody.appendChild(row);
+                });
+            }
+
+            async function toggleCategoryStatus(id, currentStatus) {
+                const updated = await putData('categories', {
+                    id: id,
+                    active: currentStatus ? 0 : 1
+                });
+                await loadCategories();
+            }
+
+            async function deleteCategory(id) {
+                if (!confirm('Are you sure you want to delete this category?')) return;
+                const res = await deleteData('categories', { id });
+                if (res?.error) return alert(res.error);
+                await loadCategories();
+            }
+
+            document.getElementById('category_form').addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const name = document.getElementById('category_name').value.trim();
+                if (!name) return alert('Enter category name');
+                await postData('categories', { name });
+                document.getElementById('category_name').value = '';
+                await loadCategories();
+            });
+
+
         async function truncateDatabase() {
             if (!confirm('Clear all data? This cannot be undone.')) return;
             await postData('truncate_database', {});
@@ -993,7 +1266,8 @@ async function loadReadyToSale() {
                 loadMasterData('categories'),
                 loadMasterData('types'),
                 loadMasterData('sizes'),
-                loadMasterData('suppliers')
+                loadMasterData('suppliers'),
+                loadCategories()
             ]);
         }
 
@@ -1081,7 +1355,8 @@ async function loadReadyToSale() {
                 loadReadyToSale(),
                 loadSales(),
                 loadReturns(),
-                loadReport()
+                loadReport(),
+                loadCategories()
             ]);
         }
 

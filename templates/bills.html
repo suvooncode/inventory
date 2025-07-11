@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Invoice Extractor & PDF Resizer</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f7f9fc; padding: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 6px; font-size: 13px; }
+    th { background: #e0eaff; }
+    input[type='text'] { width: 100%; padding: 5px; box-sizing: border-box; }
+    .top-panel { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 30px; align-items: center; }
+    .top-panel div { flex: 1; min-width: 300px; }
+    button { padding: 6px 12px; margin: 4px; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<h2>🧾 Invoice PDF Extractor & Resizer</h2>
+
+<div class="top-panel">
+  <div>
+    <form id="upload-form" enctype="multipart/form-data">
+      <label>Upload PDF Invoices:</label><br>
+      <input type="file" name="pdfs" multiple accept=".pdf" required>
+      <button type="submit">Upload & Extract</button>
+    </form>
+  </div>
+
+  <div>
+    <label>Resize PDF for Print:</label><br>
+    <input type="text" id="filename" placeholder="example.pdf">
+    <select id="template">
+      <option value="Amazon">Amazon (10×15 cm)</option>
+      <option value="Meesho">Meesho (8×16 cm)</option>
+      <option value="Custom">Custom</option>
+    </select>
+    <input type="number" id="width" value="10" step="0.1"> cm
+    <input type="number" id="height" value="15" step="0.1"> cm
+    <button onclick="previewResizedPDF()">👁️ Preview PDF</button>
+  </div>
+</div>
+
+<div id="result"></div>
+
+<script>
+    document.addEventListener('click', function (e) {
+    if (e.target && e.target.id === 'save-selected') {
+        const selectedRows = [];
+        const rows = document.querySelectorAll('table tr');
+
+        rows.forEach((row, idx) => {
+            if (idx === 0) return; // skip header
+
+            const checkbox = row.querySelector('.row-check');
+            if (checkbox && checkbox.checked) {
+                const inputs = row.querySelectorAll('input[type="text"]');
+                const rowData = {};
+                inputs.forEach(input => {
+                    rowData[input.name] = input.value;
+                });
+                selectedRows.push(rowData);
+            }
+        });
+
+        if (selectedRows.length === 0) {
+            alert('No rows selected!');
+            return;
+        }
+
+        fetch('/save_selected', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rows: selectedRows })
+        })
+        .then(res => res.json())
+        .then(data => alert(data.message))
+        .catch(err => alert('Failed to save rows'));
+    }
+});
+
+document.getElementById('upload-form').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  const formData = new FormData(this);
+  const response = await fetch('/upload', { method: 'POST', body: formData });
+  const result = await response.json();
+
+  const data = result.data;
+  const uploadedFiles = result.uploaded_files;
+  if (uploadedFiles.length) document.getElementById('filename').value = uploadedFiles[0];
+
+  if (!data.length) {
+    document.getElementById('result').innerText = 'No data extracted.';
+    return;
+  }
+
+  const keys = Object.keys(data[0]);
+  const table = document.createElement('table');
+  const headerRow = document.createElement('tr');
+
+  const selectAll = document.createElement('input');
+  selectAll.type = 'checkbox';
+  selectAll.onclick = () => {
+    document.querySelectorAll('.row-check').forEach(cb => cb.checked = selectAll.checked);
+  }
+
+  headerRow.innerHTML = `<th><input type="checkbox" id="select-all"></th>`;
+  keys.forEach(k => {
+    const th = document.createElement('th');
+    th.innerText = k;
+    headerRow.appendChild(th);
+  });
+  headerRow.innerHTML += '<th>Save</th>';
+  table.appendChild(headerRow);
+
+  data.forEach((row, index) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><input type="checkbox" class="row-check"></td>`;
+
+    keys.forEach(k => {
+      const td = document.createElement('td');
+      td.innerHTML = `<input type="text" name="${k}" value="${row[k] || ''}">`;
+      tr.appendChild(td);
+    });
+
+    const saveTd = document.createElement('td');
+    const btn = document.createElement('button');
+    btn.innerText = 'Save';
+    btn.onclick = () => alert('Save logic coming soon');
+    saveTd.appendChild(btn);
+    tr.appendChild(saveTd);
+    table.appendChild(tr);
+  });
+
+  const resultDiv = document.getElementById('result');
+  resultDiv.innerHTML = '';
+  resultDiv.appendChild(table);
+
+  const downloadLink = document.createElement('a');
+  downloadLink.href = '/download';
+  downloadLink.innerText = '📥 Download Excel';
+  downloadLink.style.display = 'inline-block';
+  downloadLink.style.marginTop = '10px';
+  resultDiv.appendChild(downloadLink);
+});
+
+// Template logic
+document.getElementById('template').addEventListener('change', () => {
+  const t = document.getElementById('template').value;
+  const w = document.getElementById('width'), h = document.getElementById('height');
+  if (t === 'Amazon') { w.value = 10; h.value = 15; }
+  else if (t === 'Meesho') { w.value = 8; h.value = 16; }
+});
+
+function previewResizedPDF() {
+  const file = document.getElementById('filename').value.trim();
+  const width = document.getElementById('width').value;
+  const height = document.getElementById('height').value;
+  if (!file) return alert('Enter filename.');
+  window.open(`/resize/${file}?width=${width}&height=${height}&preview=true`, '_blank');
+}
+</script>
+
+</body>
+</html>
