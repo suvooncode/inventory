@@ -16,7 +16,7 @@ app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
+DB_PATH = 'inventory.db'
 def init_db():
     with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
@@ -1029,10 +1029,14 @@ def save_selected():
     print("-------------ready")
     with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
-        c.executescript('''CREATE TABLE IF NOT EXISTS invoices (
+        # DROP TABLE IF EXISTS invoices;
+        c.executescript('''
+            CREATE TABLE IF NOT EXISTS invoices (
                 bill_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 pdf_name TEXT,
-                invoice_no TEXT
+                awb_number TEXT,
+                invoice_no TEXT,
+                order_id TEXT
             );
             CREATE TABLE IF NOT EXISTS invoice_metadata (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1044,11 +1048,16 @@ def save_selected():
         ''')
         print("-------------------check -1")
         rows = request.json.get('rows', [])
+        pdf_name = request.json.get("pdf_name")
+        print("---request.json", request.json)
+        # return None
         for row in rows:
             print("-------------------check -1",row)
             invoice_no = row.get("Invoice No", "")
-            pdf_name = row.get("AWB Number", "UNKNOWN_PDF")
-            c.execute("INSERT INTO invoices (pdf_name, invoice_no) VALUES (?, ?)", (pdf_name, invoice_no))
+            pdf_name = pdf_name #
+            awb_number = row.get("AWB Number", "unknown")
+            order_id = row.get("Order ID", "unknown")
+            c.execute("INSERT INTO invoices (pdf_name, awb_number, invoice_no, order_id) VALUES (?, ?, ?, ?)", (pdf_name, awb_number, invoice_no,order_id))
             print("----execute")
             bill_id = c.lastrowid
             for key, value in row.items():
@@ -1058,6 +1067,196 @@ def save_selected():
         conn.commit()
     return jsonify({"message": f"{len(rows)} row(s) saved to bill.db ✅"})
 
+
+@app.route('/api/invoices/list_m')
+def list_saved_invoices():
+    with sqlite3.connect(DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute('''
+            SELECT 
+                i.invoice_no,
+                i.pdf_name,
+                i.awb_number,
+                i.order_id,
+                MAX(CASE WHEN m.meta_key = 'Invoice Date' THEN m.meta_value END) AS invoice_date,
+                MAX(CASE WHEN m.meta_key = 'Customer Name' THEN m.meta_value END) AS customer_name,
+                MAX(CASE WHEN m.meta_key = 'State' THEN m.meta_value END) AS state,
+                MAX(CASE WHEN m.meta_key = 'Payment Type' THEN m.meta_value END) AS payment_type
+            FROM invoices i
+            LEFT JOIN invoice_metadata m ON i.bill_id = m.bill_id
+            GROUP BY i.bill_id
+            ORDER BY i.bill_id DESC
+        ''')
+        rows = c.fetchall()
+        result = [
+            {
+                "invoice_no": row[0],
+                "pdf_name": row[1],
+                "awb_number": row[2],
+                "order_id": row[3],
+                "invoice_date": row[4],
+                "customer_name": row[5],
+                "state": row[6],
+                "payment_type": row[7]
+            }
+            for row in rows
+        ]
+    return jsonify(result)
+
+@app.route('/view_pdf/<path:filename>')
+def view_pdf(filename):
+    path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if os.path.exists(path):
+        return send_file(path, as_attachment=False)
+    return f"PDF not found: {filename}", 404
+
+# API to mark invoice as return and handle return details
+@app.route('/api/invoices/mark_return', methods=['POST'])
+def mark_invoice_return():
+    data = request.json
+    bill_id = data.get('bill_id')
+    return_type = data.get('return_type')  # customer, supplier, or damaged
+    add_to_stock = data.get('add_to_stock', 0)
+    category_id = data.get('category_id')
+    type_id = data.get('type_id')
+    size_id = data.get('size_id')
+    supplier_id = data.get('supplier_id')
+    quantity = data.get('quantity', 1)
+    loss_amount = data.get('loss_amount', 0)
+    reason = data.get('reason', 'No reason provided')
+
+    with sqlite3.connect(DB_PATH) as conn:
+        c = conn.cursor()
+        
+        # Verify bill_id exists
+        c.execute('SELECT 1 FROM invoices WHERE bill_id = ?', (bill_id,))
+        if not c.fetchone():
+            return jsonify({'error': 'Invalid bill_id'}), 400
+
+        # Validate return_type
+        if return_type not in ['RTO', 'Customer', 'damaged']:
+            return jsonify({'error': 'Invalid return_type'}), 400
+
+        # Insert return record
+        return_id = str(uuid.uuid4())
+        c.execute('''
+            INSERT INTO returns (id, category_id, type_id, size_id, supplier_id, 
+                return_type, quantity, add_to_stock, loss_amount, date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (return_id, category_id, type_id, size_id, supplier_id, return_type, 
+              quantity, add_to_stock, loss_amount, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+
+        # Update invoice_metadata with return details
+        c.execute('''
+            INSERT INTO invoice_metadata (bill_id, meta_key, meta_value)
+            VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?)
+        ''', (bill_id, 'return', 'yes', 
+              bill_id, 'return_type', return_type, 
+              bill_id, 'reason', reason))
+
+        conn.commit()
+        return jsonify({'message': 'Invoice marked as return', 'return_id': return_id})
+
+# API to delete invoice
+@app.route('/api/invoices/delete', methods=['POST'])
+def delete_invoice():
+    data = request.json
+    bill_id = data.get('bill_id')
+    
+    with sqlite3.connect(DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute('SELECT 1 FROM invoice_metadata WHERE bill_id = ? AND meta_key = "return" AND meta_value = "yes"', (bill_id,))
+        if c.fetchone():
+            return jsonify({'error': 'Cannot delete returned invoice'}), 400
+            
+        c.execute('DELETE FROM invoice_metadata WHERE bill_id = ?', (bill_id,))
+        c.execute('DELETE FROM invoices WHERE bill_id = ?', (bill_id,))
+        conn.commit()
+        return jsonify({'message': 'Invoice deleted'})
+
+# Modified saved invoices list to include return metadata
+@app.route('/api/invoices/list', methods=['GET'])
+def list_saved_invoices_m():
+    with sqlite3.connect(DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute('''
+            SELECT 
+                i.bill_id,
+                i.invoice_no,
+                i.pdf_name,
+                i.awb_number,
+                i.order_id,
+                MAX(CASE WHEN m.meta_key = 'Invoice Date' THEN m.meta_value END) AS invoice_date,
+                MAX(CASE WHEN m.meta_key = 'Customer Name' THEN m.meta_value END) AS customer_name,
+                MAX(CASE WHEN m.meta_key = 'State' THEN m.meta_value END) AS state,
+                MAX(CASE WHEN m.meta_key = 'Payment Type' THEN m.meta_value END) AS payment_type,
+                MAX(CASE WHEN m.meta_key = 'return' THEN m.meta_value END) AS return_status,
+                MAX(CASE WHEN m.meta_key = 'return_type' THEN m.meta_value END) AS return_type,
+                MAX(CASE WHEN m.meta_key = 'reason' THEN m.meta_value END) AS return_reason
+            FROM invoices i
+            LEFT JOIN invoice_metadata m ON i.bill_id = m.bill_id
+            GROUP BY i.bill_id
+            ORDER BY i.bill_id DESC
+        ''')
+        rows = c.fetchall()
+        result = [
+            {
+                'bill_id': row[0],
+                'invoice_no': row[1],
+                'pdf_name': row[2],
+                'awb_number': row[3],
+                'order_id': row[4],
+                'invoice_date': row[5],
+                'customer_name': row[6],
+                'state': row[7],
+                'payment_type': row[8],
+                'return_status': row[9],
+                'return_type': row[10],
+                'return_reason': row[11]
+            } for row in rows
+        ]
+        return jsonify(result)
+
+
+# API to get counts of bills, returns, actual sales, and summary
+@app.route('/api/invoice_summary/data', methods=['GET'])
+def invoice_summary():
+    with sqlite3.connect(DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute('SELECT COUNT(*) FROM invoices')
+        total_bills = c.fetchone()[0]
+        c.execute('SELECT COUNT(*) FROM invoice_metadata WHERE meta_key = "return" AND meta_value = "yes"')
+        total_returns = c.fetchone()[0]
+        actual_sales = total_bills - total_returns
+        
+        c.execute('''
+            SELECT 
+                i.bill_id,
+                i.invoice_no,
+                i.order_id,
+                i.awb_number,
+                MAX(CASE WHEN m.meta_key = 'return' THEN m.meta_value END) AS return_status,
+                MAX(CASE WHEN m.meta_key = 'return_type' THEN m.meta_value END) AS return_type
+            FROM invoices i
+            LEFT JOIN invoice_metadata m ON i.bill_id = m.bill_id
+            GROUP BY i.bill_id
+        ''')
+        summary = [{
+            'bill_id': row[0],
+            'invoice_no': row[1],
+            'order_id': row[2],
+            'awb_number': row[3],
+            'return_status': row[4],
+            'return_type': row[5]
+        } for row in c.fetchall()]
+        
+        return jsonify({
+            'total_bills': total_bills,
+            'total_returns': total_returns,
+            'actual_sales': actual_sales,
+            'summary': summary
+        })    
+    
 @app.route('/download')
 def download_excel():
     return send_file("extracted.xlsx", as_attachment=True)

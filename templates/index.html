@@ -457,6 +457,18 @@
 
 
         <div id="Bill" class="tab-pane fade">
+            <!-- HTML for counts and summary table -->
+            <div style="margin: 20px;">
+                <h3>Sales and Return Overview</h3>
+                <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                    <div><strong>Total Bills:</strong> <span id="totalBills">0</span></div>
+                    <div><strong>Total Returns:</strong> <span id="totalReturns">0</span></div>
+                    <div><strong>Actual Sales:</strong> <span id="actualSales">0</span></div>
+                </div>
+                <!--<table id="summaryTable" class="display" style="width: 100%;"></table>-->
+            </div>
+
+            
             <h2>🧾 Invoice PDF Extractor & Resizer</h2>
 
                 <div class="top-panel">
@@ -483,6 +495,18 @@
                 </div>
 
                 <div id="result"></div>
+
+                <div >
+                    <h3>📁 Saved Invoices</h3>
+                    <button id="load-invoices" style="margin: 10px 0; font-size: 16px;">📋 Load Saved Invoices</button>
+
+                        <div class="tab">
+                        <table id="invoiceTable" class="display" style="width:100%">
+                            
+                        </table>
+                        </div>
+
+                </div>
 
         </div>
 
@@ -615,6 +639,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+document.getElementById('load-invoices').addEventListener('click', fetchSavedInvoices);
+document.addEventListener('DOMContentLoaded', () => {fetchInvoiceSummary();});
+
 
 // bills js start
 async function postData(endpoint, data) {
@@ -756,6 +783,8 @@ document.addEventListener('click', async function (e) {
     if (e.target && e.target.id === 'save-selected') {
         const selectedRows = [];
         const rows = document.querySelectorAll('table tr');
+        const pdf_name  = document.getElementById('filename').value;
+
 
         rows.forEach((row, idx) => {
             if (idx === 0) return;
@@ -771,7 +800,7 @@ document.addEventListener('click', async function (e) {
         });
 
         if (!selectedRows.length) return alert('No rows selected!');
-        const res = await postData('/save_selected/savexls', { rows: selectedRows });
+        const res = await postData('/save_selected/savexls', { rows: selectedRows, pdf_name: pdf_name });
         alert(res.message);
     }
 });
@@ -1655,6 +1684,208 @@ async function loadReadyToSale() {
     loadDropdowns();
     loadReturns();
 });
+
+// Modified to include return status and mark return button
+async function fetchSavedInvoices() {
+    const response = await fetch('/api/invoices/list');
+    const data = await response.json();
+
+    const table = $('#invoiceTable').DataTable({
+        data: data,
+        destroy: true,
+        columns: [
+            { data: 'awb_number', title: 'AWB Number' },
+            { data: 'order_id', title: 'Order ID' },
+            { data: 'invoice_no', title: 'Invoice No' },
+            { data: 'invoice_date', title: 'Invoice Date' },
+            { data: 'customer_name', title: 'Customer Name' },
+            { data: 'state', title: 'State' },
+            { data: 'payment_type', title: 'Payment Type' },
+            { 
+                data: 'return_status', 
+                title: 'Return Status',
+                render: function (data, type, row) {
+                    return data === 'yes' 
+                        ? `Returned (${row.return_type}): ${row.return_reason || 'No reason'}`
+                        : 'Not Returned';
+                }
+            },
+            {
+                data: null,
+                title: 'PDF',
+                render: function (row) {
+                    const safePDF = encodeURIComponent(row.pdf_name || '');
+                    return safePDF
+                        ? `<a href="/view_pdf/${safePDF}" target="_blank">🔍 View</a>`
+                        : 'No PDF';
+                }
+            },
+            {
+                data: null,
+                title: 'Action',
+                render: function (row) {
+                    let actions = row.return_status !== 'yes'
+                        ? `<button onclick="openReturnModal('${row.bill_id}', '${row.invoice_no}')">Mark Return</button>`
+                        : '';
+                    actions += ` <button onclick="deleteInvoice('${row.bill_id}')">Delete</button>`;
+                    return actions;
+                }
+            }
+        ]
+    });
+}
+// Modified openReturnModal to use button onclick instead of form submit
+function openReturnModal(billId, invoiceNo) {
+    const modalHtml = `
+        <div id="returnModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center;">
+            <div style="background: white; padding: 20px; border-radius: 5px; width: 400px;">
+                <h3>Mark Return for Invoice ${invoiceNo}</h3>
+                <div id="returnFormDiv">
+                    <input type="hidden" id="bill_id" value="${billId}">
+                    <div>
+                        <label>Return Type:</label>
+                        <select id="return_type" required>
+                            <option value="Customer">Customer</option>
+                            <option value="RTO">RTO</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Add to Stock:</label>
+                        <input type="checkbox" id="add_to_stock" value="1">
+                    </div>
+                    <div>
+                        <label>Category:</label>
+                        <select id="category_id" required>
+                            <!-- Populate with categories via API -->
+                        </select>
+                    </div>
+                    <div>
+                        <label>Type:</label>
+                        <select id="type_id" required>
+                            <!-- Populate with types via API -->
+                        </select>
+                    </div>
+                    <div>
+                        <label>Size:</label>
+                        <select id="size_id" required>
+                            <!-- Populate with sizes via API -->
+                        </select>
+                    </div>
+                    <div>
+                        <label>Supplier:</label>
+                        <select id="supplier_id" required>
+                            <!-- Populate with suppliers via API -->
+                        </select>
+                    </div>
+                    <div>
+                        <label>Quantity:</label>
+                        <input type="number" id="quantity" value="1" min="1" required>
+                    </div>
+                    <div>
+                        <label>Loss Amount:</label>
+                        <input type="number" id="loss_amount" value="0" min="0" step="0.01">
+                    </div>
+                    <div>
+                        <label>Reason:</label>
+                        <textarea id="reason" rows="3"></textarea>
+                    </div>
+                    <button type="button" onclick="submitReturn()">Submit Return</button>
+                    <button type="button" onclick="closeReturnModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // Populate dropdowns
+    Promise.all([
+        fetch('/api/categories').then(res => res.json()),
+        fetch('/api/types').then(res => res.json()),
+        fetch('/api/sizes').then(res => res.json()),
+        fetch('/api/suppliers').then(res => res.json())
+    ]).then(([categories, types, sizes, suppliers]) => {
+        document.querySelector('#category_id').innerHTML = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        document.querySelector('#type_id').innerHTML = types.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+        document.querySelector('#size_id').innerHTML = sizes.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        document.querySelector('#supplier_id').innerHTML = suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    });
+}
+
+// Function to submit return
+async function submitReturn() {
+    alert(document.getElementById('return_type').value);
+    const data = {
+        bill_id: document.getElementById('bill_id').value,
+        return_type: document.getElementById('return_type').value|| "RTO",
+        add_to_stock: document.getElementById('add_to_stock').checked ? 1 : 0 ,
+        category_id: document.getElementById('category_id').value,
+        type_id: document.getElementById('type_id').value,
+        size_id: document.getElementById('size_id').value,
+        supplier_id: document.getElementById('supplier_id').value,
+        quantity: document.getElementById('quantity').value,
+        loss_amount: document.getElementById('loss_amount').value,
+        reason: document.getElementById('reason').value
+    };
+
+    const response = await fetch('/api/invoices/mark_return', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (response.ok) {
+        alert('Return marked successfully');
+        closeReturnModal();
+        fetchSavedInvoices();
+    } else {
+        alert(result.error || 'Failed to mark return');
+    }
+}
+
+// Function to close modal
+function closeReturnModal() {
+    const modal = document.getElementById('returnModal');
+    if (modal) modal.remove();
+}
+
+// Delete invoice function
+async function deleteInvoice(billId) {
+    if (!confirm('Are you sure you want to delete this invoice?')) return;
+    
+    const response = await fetch('/api/invoices/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bill_id: billId })
+    });
+    const result = await response.json();
+    if (response.ok) {
+        alert('Invoice deleted successfully');
+        fetchSavedInvoices();
+    } else {
+        alert(result.error || 'Failed to delete invoice');
+    }
+}
+
+// Fetch and display invoice summary
+async function fetchInvoiceSummary() {
+    const response = await fetch('/api/invoice_summary/data');
+    const data = await response.json();
+    
+    // Update counts
+    document.getElementById('totalBills').textContent = data.total_bills;
+    document.getElementById('totalReturns').textContent = data.total_returns;
+    document.getElementById('actualSales').textContent = data.actual_sales;
+    
+    
+}
+
+/*
+<th>AWB</th>
+                                <th>Order ID</th>
+                                <th>SKU</th>
+                                <th>Actions</th>
+*/
+
 
     </script>
 </body>
