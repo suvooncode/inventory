@@ -30,6 +30,7 @@
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#ready_to_sale">Ready to Sale</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sale">Sale</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#return">Return</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#returnManage">Return Manage</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#report">Report</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#Bill">Bills</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#master_data">Master Data</a></li>
@@ -366,6 +367,94 @@
 
         </div>
 
+        <div id="returnManage" class="tab-pane fade">
+            <div class="container mx-auto p-4">
+        <h1 class="text-2xl font-bold mb-4">Manage Returns</h1>
+
+        <!-- Form to Add/Edit Return -->
+        <div class="bg-white p-6 rounded-lg shadow-md ">
+            <h2 class="text-xl font-semibold mb-4">Add/Edit Return</h2>
+            <form id="returnForm" class="space-y-4">
+                <input type="hidden" id="returnId">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" style="display:flex;">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Category</label>
+                        <select id="categoryId" class="mt-1 block w-full p-2 border rounded-md" required>
+                            <option value="">Select Category</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Type</label>
+                        <select id="typeId" class="mt-1 block w-full p-2 border rounded-md" required>
+                            <option value="">Select Type</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Size</label>
+                        <select id="sizeId" class="mt-1 block w-full p-2 border rounded-md" required>
+                            <option value="">Select Size</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Supplier</label>
+                        <select id="supplierId" class="mt-1 block w-full p-2 border rounded-md" required>
+                            <option value="">Select Supplier</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Return Type</label>
+                        <select id="returnType" class="mt-1 block w-full p-2 border rounded-md" required>
+                            <option value="Customer">Customer</option>
+                            <option value="Supplier">Supplier</option>
+                            <option value="Damaged">Damaged</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Quantity</label>
+                        <input type="number" id="quantity" min="1" class="mt-1 block w-full p-2 border rounded-md" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Add to Stock</label>
+                        <input type="checkbox" id="addToStock" class="mt-1 h-4 w-4">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Loss Amount</label>
+                        <input type="number" id="lossAmount" step="0.01" min="0" class="mt-1 block w-full p-2 border rounded-md">
+                    </div>
+                </div>
+                <div class="flex space-x-4">
+                    <button type="submit" id="submitReturn" class="btn btn-success">Save Return</button>
+                    <button type="button" id="clearForm" class="btn btn-primary">Clear</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Returns Table -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Returns List [(return)]</h2>
+            <table class="min-w-full bg-white border">
+                <thead>
+                    <tr>
+                        <th class="py-2 px-4 border">Category</th>
+                        <th class="py-2 px-4 border">Type</th>
+                        <th class="py-2 px-4 border">Size</th>
+                        <th class="py-2 px-4 border">Supplier</th>
+                        <th class="py-2 px-4 border">Return Type</th>
+                        <th class="py-2 px-4 border">Quantity</th>
+                        <th class="py-2 px-4 border">Add to Stock</th>
+                        <th class="py-2 px-4 border">Loss Amount</th>
+                        <th class="py-2 px-4 border">Date</th>
+                        <th class="py-2 px-4 border">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="returnsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+        </div>
+
+
+
 
         <div id="Bill" class="tab-pane fade">
             <h2>🧾 Invoice PDF Extractor & Resizer</h2>
@@ -582,31 +671,48 @@ function renderEditableTable(data) {
     const table = document.createElement('table');
     const headerRow = document.createElement('tr');
 
+    // --- Create Select All checkbox and bind properly ---
+    const selectAllTh = document.createElement('th');
     const selectAll = document.createElement('input');
     selectAll.type = 'checkbox';
-    selectAll.onclick = () => {
+    selectAll.id = 'select-all';
+    selectAll.addEventListener('change', () => {
         document.querySelectorAll('.row-check').forEach(cb => cb.checked = selectAll.checked);
-    };
+    });
+    selectAllTh.appendChild(selectAll);
+    headerRow.appendChild(selectAllTh);
 
-    headerRow.innerHTML = `<th><input type="checkbox" id="select-all"></th>`;
+    // --- Add header for each column ---
     keys.forEach(k => {
         const th = document.createElement('th');
         th.innerText = k;
         headerRow.appendChild(th);
     });
-    headerRow.innerHTML += '<th>Save</th>';
+
+    // --- Add a column for the Save button ---
+    const saveHeader = document.createElement('th');
+    saveHeader.innerText = 'Save';
+    headerRow.appendChild(saveHeader);
+
     table.appendChild(headerRow);
 
+    // --- Create rows ---
     data.forEach((row, index) => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td><input type="checkbox" class="row-check"></td>`;
 
+        // Checkbox per row
+        const checkboxTd = document.createElement('td');
+        checkboxTd.innerHTML = `<input type="checkbox" class="row-check">`;
+        tr.appendChild(checkboxTd);
+
+        // Inputs per column
         keys.forEach(k => {
             const td = document.createElement('td');
             td.innerHTML = `<input type="text" name="${k}" value="${row[k] || ''}">`;
             tr.appendChild(td);
         });
 
+        // Individual Save button
         const saveTd = document.createElement('td');
         const btn = document.createElement('button');
         btn.innerText = 'Save';
@@ -616,23 +722,27 @@ function renderEditableTable(data) {
             inputs.forEach(input => {
                 rowData[input.name] = input.value;
             });
-            const res = await postData('/save_selected', { rows: [rowData] });
+            const res = await postData('/save_selected/savexls', { rows: [rowData] });
             alert(res.message);
         };
         saveTd.appendChild(btn);
         tr.appendChild(saveTd);
+
         table.appendChild(tr);
     });
 
+    // Render the result
     const resultDiv = document.getElementById('result');
     resultDiv.innerHTML = '';
     resultDiv.appendChild(table);
 
+    // Save selected rows button
     const saveAllBtn = document.createElement('button');
     saveAllBtn.innerText = '💾 Save Selected Rows';
     saveAllBtn.id = 'save-selected';
     resultDiv.appendChild(saveAllBtn);
 
+    // Download Excel link
     const downloadLink = document.createElement('a');
     downloadLink.href = '/download';
     downloadLink.innerText = '📥 Download Excel';
@@ -640,6 +750,7 @@ function renderEditableTable(data) {
     downloadLink.style.marginTop = '10px';
     resultDiv.appendChild(downloadLink);
 }
+
 
 document.addEventListener('click', async function (e) {
     if (e.target && e.target.id === 'save-selected') {
@@ -660,7 +771,7 @@ document.addEventListener('click', async function (e) {
         });
 
         if (!selectedRows.length) return alert('No rows selected!');
-        const res = await postData('/save_selected', { rows: selectedRows });
+        const res = await postData('/save_selected/savexls', { rows: selectedRows });
         alert(res.message);
     }
 });
@@ -1362,6 +1473,188 @@ async function loadReadyToSale() {
 
         init();
         
+
+        //////////////Return Manage
+
+        document.addEventListener('DOMContentLoaded', () => {
+    const returnForm = document.getElementById('returnForm');
+    const clearFormBtn = document.getElementById('clearForm');
+    const returnsTableBody = document.getElementById('returnsTableBody');
+
+    // Fetch and populate dropdowns
+    async function loadDropdowns() {
+        const endpoints = ['categories', 'types', 'sizes', 'suppliers'];
+        const dropdowns = ['categoryId', 'typeId', 'sizeId', 'supplierId'];
+        
+        for (let i = 0; i < endpoints.length; i++) {
+            const response = await fetch(`/api/${endpoints[i]}`);
+            const data = await response.json();
+            const select = document.getElementById(dropdowns[i]);
+            select.innerHTML = `<option value="">Select ${endpoints[i][0].toUpperCase() + endpoints[i].slice(1, -1)}</option>`;
+            data.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.name;
+                select.appendChild(option);
+            });
+        }
+    }
+
+    // Load returns data
+    async function loadReturns() {
+        const response = await fetch('/api/returns');
+        const returns = await response.json();
+        returnsTableBody.innerHTML = '';
+        returns.forEach(r => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="py-2 px-4 border">${r.category}</td>
+                <td class="py-2 px-4 border">${r.type}</td>
+                <td class="py-2 px-4 border">${r.size}</td>
+                <td class="py-2 px-4 border">${r.supplier}</td>
+                <td class="py-2 px-4 border">${r.return_type}</td>
+                <td class="py-2 px-4 border">${r.quantity}</td>
+                <td class="py-2 px-4 border">${r.add_to_stock ? 'Yes' : 'No'}</td>
+                <td class="py-2 px-4 border">${r.loss_amount}</td>
+                <td class="py-2 px-4 border">${r.date}</td>
+                <td class="py-2 px-4 border">
+                    <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 edit-btn" data-id="${r.id}">Edit</button>
+                    <button class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 delete-btn" data-id="${r.id}">Delete</button>
+                    ${r.add_to_stock ? `
+                        <button class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 ready-btn" data-id="${r.id}" data-quantity="${r.quantity}">To Ready</button>
+                        <button class="bg-purple-500 text-white px-2 py-1 rounded hover:bg-purple-600 sale-btn" data-id="${r.id}" data-quantity="${r.quantity}">To Sale</button>
+                    ` : ''}
+                </td>
+            `;
+            returnsTableBody.appendChild(row);
+        });
+
+        // Add event listeners for buttons
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', () => editReturn(btn.dataset.id));
+        });
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', () => deleteReturn(btn.dataset.id));
+        });
+        document.querySelectorAll('.ready-btn').forEach(btn => {
+            btn.addEventListener('click', () => moveToReady(btn.dataset.id, btn.dataset.quantity));
+        });
+        document.querySelectorAll('.sale-btn').forEach(btn => {
+            btn.addEventListener('click', () => moveToSale(btn.dataset.id, btn.dataset.quantity));
+        });
+    }
+
+    // Clear form
+    clearFormBtn.addEventListener('click', () => {
+        returnForm.reset();
+        document.getElementById('returnId').value = '';
+        document.getElementById('submitReturn').textContent = 'Save Return';
+    });
+
+    // Submit form
+    returnForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const returnId = document.getElementById('returnId').value;
+        const data = {
+            category_id: document.getElementById('categoryId').value,
+            type_id: document.getElementById('typeId').value,
+            size_id: document.getElementById('sizeId').value,
+            supplier_id: document.getElementById('supplierId').value,
+            return_type: document.getElementById('returnType').value,
+            quantity: parseInt(document.getElementById('quantity').value),
+            add_to_stock: document.getElementById('addToStock').checked ? 1 : 0,
+            loss_amount: parseFloat(document.getElementById('lossAmount').value) || 0
+        };
+
+        const method = returnId ? 'PUT' : 'POST';
+        const url = returnId ? `/api/returns` : '/api/returns';
+        const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...data, id: returnId })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            alert(result.message);
+            clearFormBtn.click();
+            loadReturns();
+        } else {
+            alert(result.error);
+        }
+    });
+
+    // Edit return
+    async function editReturn(id) {
+        const response = await fetch('/api/returns');
+        const returns = await response.json();
+        const r = returns.find(r => r.id === id);
+        if (r) {
+            document.getElementById('returnId').value = r.id;
+            document.getElementById('categoryId').value = r.category_id || '';
+            document.getElementById('typeId').value = r.type_id || '';
+            document.getElementById('sizeId').value = r.size_id || '';
+            document.getElementById('supplierId').value = r.supplier_id || '';
+            document.getElementById('returnType').value = r.return_type;
+            document.getElementById('quantity').value = r.quantity;
+            document.getElementById('addToStock').checked = r.add_to_stock;
+            document.getElementById('lossAmount').value = r.loss_amount;
+            document.getElementById('submitReturn').textContent = 'Update Return';
+        }
+    }
+
+    // Delete return
+    async function deleteReturn(id) {
+        if (confirm('Are you sure you want to delete this return?')) {
+            const response = await fetch('/api/returns', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            const result = await response.json();
+            alert(result.message || result.error);
+            loadReturns();
+        }
+    }
+
+    // Move to Ready to Sale
+    async function moveToReady(returnId, maxQuantity) {
+        const quantity = prompt(`Enter quantity to move to Ready to Sale (max ${maxQuantity}):`, maxQuantity);
+        if (quantity && parseInt(quantity) > 0 && parseInt(quantity) <= parseInt(maxQuantity)) {
+            const response = await fetch('/api/returns_to_ready_to_sale', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ return_id: returnId, quantity: parseInt(quantity) })
+            });
+            const result = await response.json();
+            alert(result.message || result.error);
+            loadReturns();
+        } else {
+            alert('Invalid quantity');
+        }
+    }
+
+    // Move to Sale
+    async function moveToSale(returnId, maxQuantity) {
+        const quantity = prompt(`Enter quantity to move to Sale (max ${maxQuantity}):`, maxQuantity);
+        if (quantity && parseInt(quantity) > 0 && parseInt(quantity) <= parseInt(maxQuantity)) {
+            const response = await fetch('/api/returns_to_sale', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ return_id: returnId, quantity: parseInt(quantity) })
+            });
+            const result = await response.json();
+            alert(result.message || result.error);
+            loadReturns();
+        } else {
+            alert('Invalid quantity');
+        }
+    }
+
+    // Initialize
+    loadDropdowns();
+    loadReturns();
+});
 
     </script>
 </body>

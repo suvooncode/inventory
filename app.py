@@ -85,8 +85,15 @@ def extract_field(text, pattern, group=1):
     return match.group(group).strip() if match else "NA"
 
 def extract_product_name(text):
-    product_match = re.search(r'Description.*?\n(.*?)\n', text, re.DOTALL)
-    return product_match
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        if re.search(r'Description\s+HSN\s+Qty', line, re.IGNORECASE):
+            if i + 1 < len(lines):
+                name_line = lines[i + 1].strip()
+                if re.search(r'\b(panty|camisole|bra|printed panty|nighty|leggings)\b', name_line, re.IGNORECASE):
+                    return name_line
+    return "NA"
+
 
 
 def extract_qty(text):
@@ -100,7 +107,7 @@ def extract_data_from_invoice(text):
         "Product Name": extract_product_name(text),
         "Pack Of": extract_field(text, r'Pack of\s*(\d+)'),
         "Customer Name": extract_field(text, r'Customer Address\s*\n(.+?)\n'),
-        "Courier Partner": extract_field(text, r'(Delhivery|Ekart|XpressBees|BlueDart|EcomExpress|Shadowfax)'),
+        "Courier Partner": extract_field(text, r'(Delhivery|Ekart|XpressBees|BlueDart|EcomExpress|Shadowfax|Valmo)'),
         "AWB Number": extract_field(text, r'\b(\d{15,})\b'),
         "Payment Type": extract_field(text, r'(COD|Prepaid: Do not collect cash)'),
         "Order ID": extract_field(text, r'Purchase Order No\.\s*(\S+)'),
@@ -151,6 +158,7 @@ def execute_raw_sql():
 
 @app.route('/api/<table>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def manage_table(table):
+    print("------------------------------------1")
     if table not in ['categories', 'types', 'sizes', 'suppliers']:
         return jsonify({'error': 'Invalid table'}), 400
     with sqlite3.connect('inventory.db') as conn:
@@ -227,6 +235,8 @@ def manage_categories():
 
 @app.route('/api/<table>/merge', methods=['POST'])
 def merge_table(table):
+    print("------------------------------------2")
+    
     if table not in ['categories', 'types', 'sizes', 'suppliers']:
         return jsonify({'error': 'Invalid table'}), 400
     data = request.json
@@ -789,6 +799,152 @@ def debug_ready_to_sale():
         ])
 
 
+#################################### RETURN MANAGE START
+@app.route('/api/returns_to_ready_to_sale', methods=['POST'])
+def returns_to_ready_to_sale():
+    data = request.json
+    return_id = data.get('return_id')
+    quantity = data.get('quantity')
+    
+    with sqlite3.connect('inventory.db') as conn:
+        c = conn.cursor()
+        c.execute('''
+            SELECT r.quantity, r.category_id, r.type_id, r.size_id, r.supplier_id
+            FROM returns r
+            WHERE r.id = ? AND r.add_to_stock = 1
+        ''', (return_id,))
+        return_data = c.fetchone()
+        
+        if not return_data:
+            return jsonify({'error': 'Invalid return_id or not marked for stock'}), 400
+            
+        return_qty, category_id, type_id, size_id, supplier_id = return_data
+        
+        if quantity > return_qty:
+            return jsonify({'error': 'Quantity exceeds available return'}), 400
+            
+        c.execute('''
+            SELECT id, quantity, COALESCE(SUM(rts.quantity), 0) as ready_qty
+            FROM purchases p
+            LEFT JOIN ready_to_sale rts ON rts.purchase_id = p.id
+            WHERE p.category_id = ? AND p.type_id = ? AND p.size_id = ? AND p.supplier_id = ?
+            GROUP BY p.id
+            HAVING p.quantity + ? - ready_qty >= ?
+        ''', (category_id, type_id, size_id, supplier_id, return_qty, quantity))
+        purchase = c.fetchone()
+        
+        if not purchase:
+            return jsonify({'error': 'No matching purchase found or insufficient stock'}), 400
+            
+        purchase_id, purchase_qty, ready_qty = purchase
+        available = purchase_qty + return_qty - ready_qty
+        
+        if quantity > available:
+            return jsonify({'error': 'Quantity exceeds available stock'}), 400
+            
+        ready_id = str(uuid.uuid4())  # Fixed: uuid4() to uuid.uuid4()
+        c.execute('''
+            INSERT INTO ready_to_sale (id, purchase_id, quantity, date)
+            VALUES (?, ?, ?, ?)
+        ''', (ready_id, purchase_id, quantity, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        
+        c.execute('UPDATE returns SET quantity = quantity - ? WHERE id = ?', 
+                 (quantity, return_id))
+        
+        conn.commit()
+        return jsonify({'message': 'Added to ready to sale from return', 'ready_to_sale_id': ready_id})
+
+@app.route('/api/returns_to_sale', methods=['POST'])
+def returns_to_sale():
+    data = request.json
+    return_id = data.get('return_id')
+    quantity = data.get('quantity')
+    
+    with sqlite3.connect('inventory.db') as conn:
+        c = conn.cursor()
+        c.execute('''
+            SELECT r.quantity, r.category_id, r.type_id, r.size_id, r.supplier_id
+            FROM returns r
+            WHERE r.id = ? AND r.add_to_stock = 1
+        ''', (return_id,))
+        return_data = c.fetchone()
+        
+        if not return_data:
+            return jsonify({'error': 'Invalid return_id or not marked for stock'}), 400
+            
+        return_qty, category_id, type_id, size_id, supplier_id = return_data
+        
+        if quantity > return_qty:
+            return jsonify({'error': 'Quantity exceeds available return'}), 400
+            
+        c.execute('''
+            SELECT p.id, p.quantity, COALESCE(SUM(rts.quantity), 0) as ready_qty
+            FROM purchases p
+            LEFT JOIN ready_to_sale rts ON rts.purchase_id = p.id
+            WHERE p.category_id = ? AND p.type_id = ? AND p.size_id = ? AND p.supplier_id = ?
+            GROUP BY p.id
+            HAVING p.quantity + ? - ready_qty >= ?
+        ''', (category_id, type_id, size_id, supplier_id, return_qty, quantity))
+        purchase = c.fetchone()
+        
+        if not purchase:
+            return jsonify({'error': 'No matching purchase found or insufficient stock'}), 400
+            
+        purchase_id, purchase_qty, ready_qty = purchase
+        available = purchase_qty + return_qty - ready_qty
+        
+        if quantity > available:
+            return jsonify({'error': 'Quantity exceeds available stock'}), 400
+            
+        ready_id = str(uuid.uuid4())  # Fixed: uuid4() to uuid.uuid4()
+        c.execute('''
+            INSERT INTO ready_to_sale (id, purchase_id, quantity, date)
+            VALUES (?, ?, ?, ?)
+        ''', (ready_id, purchase_id, quantity, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        
+        sale_id = str(uuid.uuid4())  # Fixed: uuid4() to uuid.uuid4()
+        c.execute('''
+            INSERT INTO sales (id, ready_to_sale_id, quantity, date)
+            VALUES (?, ?, ?, ?)
+        ''', (sale_id, ready_id, quantity, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        
+        c.execute('UPDATE returns SET quantity = quantity - ? WHERE id = ?', 
+                 (quantity, return_id))
+        
+        conn.commit()
+        return jsonify({'message': 'Sale recorded from return', 'sale_id': sale_id})
+
+@app.route('/api/returns_report', methods=['GET'])
+def returns_report():
+    with sqlite3.connect('inventory.db') as conn:
+        c = conn.cursor()
+        c.execute('''
+            SELECT 
+                c.name AS category,
+                t.name AS type,
+                sz.name AS size,
+                su.name AS supplier,
+                r.return_type,
+                r.quantity AS return_quantity,
+                r.add_to_stock,
+                r.loss_amount,
+                r.date
+            FROM returns r
+            JOIN categories c ON r.category_id = c.id
+            JOIN types t ON r.type_id = t.id
+            JOIN sizes sz ON r.size_id = sz.id
+            JOIN suppliers su ON r.supplier_id = su.id
+        ''')
+        return jsonify([
+            {
+                'category': row[0], 'type': row[1], 'size': row[2], 'supplier': row[3],
+                'return_type': row[4], 'return_quantity': row[5], 'add_to_stock': row[6],
+                'loss_amount': row[7], 'date': row[8]
+            } for row in c.fetchall()
+        ])
+        
+################################## RETURN MANAGE END
+
 
 @app.route('/api/truncate_database', methods=['POST'])
 def truncate_database():
@@ -868,19 +1024,38 @@ def open_preview():
     path = request.args.get('path')
     return send_file(path, as_attachment=False)
 
-@app.route('/save_selected', methods=['POST'])
+@app.route('/api/save_selected/savexls', methods=['POST'])
 def save_selected():
-    rows = request.json.get('rows', [])
-    for row in rows:
-        invoice_no = row.get("Invoice No", "")
-        pdf_name = row.get("AWB Number", "UNKNOWN_PDF")
-        c.execute("INSERT INTO invoices (pdf_name, invoice_no) VALUES (?, ?)", (pdf_name, invoice_no))
-        bill_id = c.lastrowid
-        for key, value in row.items():
-            if key not in ["Invoice No"]:
-                c.execute("INSERT INTO invoice_metadata (bill_id, meta_key, meta_value) VALUES (?, ?, ?)",
-                          (bill_id, key, value))
-    conn.commit()
+    print("-------------ready")
+    with sqlite3.connect('inventory.db') as conn:
+        c = conn.cursor()
+        c.executescript('''CREATE TABLE IF NOT EXISTS invoices (
+                bill_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pdf_name TEXT,
+                invoice_no TEXT
+            );
+            CREATE TABLE IF NOT EXISTS invoice_metadata (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                bill_id INTEGER,
+                meta_key TEXT,
+                meta_value TEXT,
+                FOREIGN KEY (bill_id) REFERENCES invoices (bill_id)
+            );
+        ''')
+        print("-------------------check -1")
+        rows = request.json.get('rows', [])
+        for row in rows:
+            print("-------------------check -1",row)
+            invoice_no = row.get("Invoice No", "")
+            pdf_name = row.get("AWB Number", "UNKNOWN_PDF")
+            c.execute("INSERT INTO invoices (pdf_name, invoice_no) VALUES (?, ?)", (pdf_name, invoice_no))
+            print("----execute")
+            bill_id = c.lastrowid
+            for key, value in row.items():
+                if key not in ["Invoice No"]:
+                    c.execute("INSERT INTO invoice_metadata (bill_id, meta_key, meta_value) VALUES (?, ?, ?)",
+                            (bill_id, key, value))
+        conn.commit()
     return jsonify({"message": f"{len(rows)} row(s) saved to bill.db ✅"})
 
 @app.route('/download')

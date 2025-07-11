@@ -1,6 +1,12 @@
 # Ignore folders (end with /)
 build/
 
+uploads/
+
+*.xlsx
+*.xls
+*.csv
+
 # Ignore specific files
 file_name.ext
 
