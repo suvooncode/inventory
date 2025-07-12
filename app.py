@@ -63,6 +63,18 @@ def init_db():
                 meta_value TEXT,
                 FOREIGN KEY (bill_id) REFERENCES invoices (bill_id)
             );
+            CREATE TABLE IF NOT EXISTS sku_mappings (
+                sku_id TEXT PRIMARY KEY,
+                category_id TEXT,
+                type_id TEXT,
+                size_id TEXT,
+                supplier_id TEXT,
+                sku_name TEXT NOT NULL,
+                FOREIGN KEY (category_id) REFERENCES categories(id),
+                FOREIGN KEY (type_id) REFERENCES types(id),
+                FOREIGN KEY (size_id) REFERENCES sizes(id),
+                FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+            );
         ''')
         default_data = {
             'categories': ['Bra', 'Panty', 'Camisole', 'Nighty'],
@@ -1331,7 +1343,267 @@ def bulk_upload_folder():
         "data": extracted_data,
         "excel_path": excel_path
     }) 
+
+
+@app.route('/api/sku_mappings', methods=['GET', 'POST', 'PUT', 'DELETE'])
+def manage_sku_mappings():
+    with sqlite3.connect(DB_PATH) as conn:
+        c = conn.cursor()
+        if request.method == 'GET':
+            c.execute('''
+                SELECT sm.sku_id, c.name, t.name, sz.name, su.name, sm.sku_name
+                FROM sku_mappings sm
+                JOIN categories c ON sm.category_id = c.id
+                JOIN types t ON sm.type_id = t.id
+                JOIN sizes sz ON sm.size_id = sz.id
+                JOIN suppliers su ON sm.supplier_id = su.id
+            ''')
+            return jsonify([{
+                'sku_id': row[0],
+                'category': row[1],
+                'type': row[2],
+                'size': row[3],
+                'supplier': row[4],
+                'sku_name': row[5]
+            } for row in c.fetchall()])
+
+        if request.method == 'POST':
+            data = request.json
+            c.execute('''
+                SELECT sm.sku_id, sm.sku_name
+                FROM sku_mappings sm
+                WHERE sm.category_id = ? AND sm.type_id = ? AND sm.size_id = ? AND sm.supplier_id = ?
+            ''', (data['category_id'], data['type_id'], data['size_id'], data['supplier_id']))
+            existing = c.fetchall()
+            if existing and not data.get('confirm_duplicate', False):
+                return jsonify({
+                    'error': 'Duplicate combination found',
+                    'existing': [{'sku_id': row[0], 'sku_name': row[1]} for row in existing]
+                }), 409
+            sku_id = str(uuid.uuid4())
+            c.execute('''
+                INSERT INTO sku_mappings (sku_id, category_id, type_id, size_id, supplier_id, sku_name)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (sku_id, data['category_id'], data['type_id'], data['size_id'], data['supplier_id'], data['sku_name']))
+            conn.commit()
+            return jsonify({'message': 'SKU mapping created', 'sku_id': sku_id})
+
+        if request.method == 'PUT':
+            data = request.json
+            c.execute('''
+                SELECT 1 FROM sku_mappings
+                WHERE category_id = ? AND type_id = ? AND size_id = ? AND supplier_id = ? AND sku_id != ?
+            ''', (data['category_id'], data['type_id'], data['size_id'], data['supplier_id'], data['sku_id']))
+            existing = c.fetchall()
+            if existing and not data.get('confirm_duplicate', False):
+                return jsonify({
+                    'error': 'Duplicate combination found',
+                    'existing': [{'sku_id': row[0]} for row in existing]
+                }), 409
+            c.execute('''
+                UPDATE sku_mappings
+                SET category_id = ?, type_id = ?, size_id = ?, supplier_id = ?, sku_name = ?
+                WHERE sku_id = ?
+            ''', (data['category_id'], data['type_id'], data['size_id'], data['supplier_id'], data['sku_name'], data['sku_id']))
+            conn.commit()
+            return jsonify({'message': 'SKU mapping updated'})
+
+        if request.method == 'DELETE':
+            data = request.json
+            c.execute('DELETE FROM sku_mappings WHERE sku_id = ?', (data['sku_id'],))
+            conn.commit()
+            return jsonify({'message': 'SKU mapping deleted'})
+        
+        
+@app.route('/api/upload_returns_csv', methods=['POST'])
+def upload_returns_csv():
+    if 'file' not in request.files:
+        return jsonify({'error': 'no file uploaded'}), 400
+
+    file = request.files['file']
+    if not file.filename.lower().endswith('.csv'):
+        return jsonify({'error': 'invalid file format, must be csv'}), 400
+
+    try:
+        df = pd.read_csv(file)
+        processed = []
+        errors = []
+        
+        with sqlite3.connect(DB_PATH) as conn:
+            c = conn.cursor()
+            
+            # Get category, size, supplier, and type mappings (lowercase for matching)
+            c.execute('SELECT id, LOWER(name) FROM categories')
+            categories = {row[1]: row[0] for row in c.fetchall()}
+            c.execute('SELECT id, LOWER(name) FROM sizes')
+            sizes = {row[1].replace('cm', '').strip(): row[0] for row in c.fetchall()}
+            c.execute('SELECT id, LOWER(name) FROM suppliers')
+            suppliers = {row[1]: row[0] for row in c.fetchall()}
+            c.execute('SELECT id, LOWER(name) FROM types')
+            types = {row[1]: row[0] for row in c.fetchall()}
+
+            for _, row in df.iterrows():
+                order_id = str(row['Suborder Number']).replace('_1', '')
+                
+                # Check for duplicate based on order_id
+                c.execute('''
+                    SELECT 1 FROM invoice_metadata 
+                    WHERE bill_id IN (SELECT bill_id FROM invoices WHERE order_id = ?) 
+                    AND meta_key = 'return' AND meta_value = 'yes'
+                ''', (order_id,))
+                if c.fetchone():
+                    errors.append(f"return already processed for order {order_id}")
+                    continue
+
+                category_name = str(row['Category']).lower()
+                if 'briefs' in category_name:
+                    category_name = 'panty'
+                if 'camisoles' in category_name:
+                    category_name = 'camisole'
+                category_id = categories.get(category_name)
+                if not category_id:
+                    errors.append(f"category {category_name} not found for order {order_id}")
+                    continue
+
+                size_name = str(row['Variation']).lower().replace('cm', '').strip()
+                size_id = next((sid for sname, sid in sizes.items() if size_name in sname), None)
+                if not size_id:
+                    errors.append(f"size {size_name} not found for order {order_id}")
+                    continue
+
+                company = 'jtm' if 'camisole' in category_name else 'bhola'
+                supplier_id = suppliers.get(company)
+                if not supplier_id:
+                    errors.append(f"supplier {company} not found for order {order_id}")
+                    continue
+
+                type_name = 'good'
+                type_id = types.get(type_name)
+                if not type_id:
+                    errors.append(f"type {type_name} not found for order {order_id}")
+                    continue
+
+                return_type = 'rto' if 'courier return' in str(row['Type of Return']).lower() else 'customer' if 'customer return' in str(row['Type of Return']).lower() else row['Type of Return'].lower()
+                return_reason = f"{str(row.get('Return Reason', 'na')).lower()} - {str(row.get('Detailed Return Reason', 'na')).lower()}".strip()
+                otp_verified_at = str(row.get('OTP verified at', 'na')).lower()
+
+                c.execute('SELECT bill_id FROM invoices WHERE order_id = ?', (order_id,))
+                bill = c.fetchone()
+                if not bill:
+                    errors.append(f"invoice not found for order {order_id}")
+                    continue
+
+                bill_id = bill[0]
+                return_id = str(uuid.uuid4())
+                quantity = 1  # Set quantity to 1 for all returns
+                c.execute('''
+                    INSERT INTO returns (id, category_id, type_id, size_id, supplier_id, return_type, quantity, add_to_stock, loss_amount, date)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (return_id, category_id, type_id, size_id, supplier_id, return_type, quantity, 1, 0, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+
+                c.execute('''
+                    INSERT INTO invoice_metadata (bill_id, meta_key, meta_value)
+                    VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?)
+                ''', (bill_id, 'return', 'yes', 
+                      bill_id, 'return_type', return_type, 
+                      bill_id, 'reason', return_reason))
+                
+                if otp_verified_at != 'na':
+                    c.execute('INSERT INTO invoice_metadata (bill_id, meta_key, meta_value) VALUES (?, ?, ?)',
+                             (bill_id, 'otp_verified_at', otp_verified_at))
+
+                processed.append({
+                    'order_id': order_id,
+                    'category': category_name,
+                    'size': size_name,
+                    'supplier': company,
+                    'type': type_name,
+                    'return_type': return_type,
+                    'return_reason': return_reason,
+                    'otp_verified_at': otp_verified_at,
+                    'quantity': quantity
+                })
+
+            conn.commit()
+
+        return jsonify({
+            'message': f'{len(processed)} returns processed',
+            'processed': processed,
+            'errors': errors if errors else None
+        })
+
+    except Exception as e:
+        return jsonify({'error': f'error processing csv: {str(e)}'}), 400    
     
+
+@app.route('/api/adjust_return_loss', methods=['POST'])
+def adjust_return_loss():
+    data = request.json
+    category_id = data.get('category_id')
+    size_id = data.get('size_id', None)
+    loss_amount = data.get('loss_amount')
+    override = data.get('override', False)
+    return_type = data.get('return_type', None)
+
+    try:
+        loss_amount = float(loss_amount) if loss_amount else 0.0
+        if loss_amount <= 0:
+            return jsonify({'error': 'loss amount must be greater than 0'}), 400
+
+        with sqlite3.connect(DB_PATH) as conn:
+            c = conn.cursor()
+
+            # Validate category_id
+            c.execute('SELECT 1 FROM categories WHERE id = ?', (category_id,))
+            if not c.fetchone():
+                return jsonify({'error': 'invalid category_id'}), 400
+
+            # Validate size_id if provided
+            if size_id:
+                c.execute('SELECT 1 FROM sizes WHERE id = ?', (size_id,))
+                if not c.fetchone():
+                    return jsonify({'error': 'invalid size_id'}), 400
+
+            # Validate return_type if provided
+            if return_type and return_type.lower() not in ['rto', 'customer', 'other']:
+                return jsonify({'error': 'invalid return_type, must be rto, customer, or other'}), 400
+
+            # Update returns based on conditions
+            query = 'UPDATE returns SET loss_amount = ? WHERE category_id = ?'
+            params = [loss_amount, category_id]
+
+            if not override:
+                query += ' AND (loss_amount IS NULL OR loss_amount = 0.0)'
+
+            if size_id:
+                query += ' AND size_id = ?'
+                params.append(size_id)
+
+            if return_type:
+                query += ' AND LOWER(return_type) = ?'
+                params.append(return_type.lower())
+
+            c.execute(query, params)
+            affected_rows = c.rowcount
+            conn.commit()
+
+            if affected_rows == 0:
+                return jsonify({'message': 'no returns found to update'})
+
+            return jsonify({
+                'message': f'{affected_rows} return(s) updated with loss amount {loss_amount}',
+                'category_id': category_id,
+                'size_id': size_id,
+                'return_type': return_type,
+                'loss_amount': loss_amount,
+                'override': override
+            })
+
+    except ValueError:
+        return jsonify({'error': 'invalid loss amount format'}), 400
+    except Exception as e:
+        return jsonify({'error': f'error updating returns: {str(e)}'}), 400
+      
 @app.route('/download')
 def download_excel():
     return send_file("extracted.xlsx", as_attachment=True)
