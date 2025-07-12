@@ -23,6 +23,9 @@
         .error-message { color: red; margin-top: 10px; }
         .form-control, .form-select { margin-bottom: 10px; }
         .btn-sm { margin-right: 5px; }
+        .bg-white.p-6.rounded-lg.shadow-md { min-height: unset; }
+        .fade {display:none !important;}
+        .active{display:block !important;}
     </style>
 </head>
 <body>
@@ -32,7 +35,7 @@
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#ready_to_sale">Ready to Sale</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sale">Sale</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#return">Return</a></li>
-        <!--<li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#returnManage">Return Manage</a></li>-->
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#returnManage">Return Manage</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#report">Report</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#Bill">Bills</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#master_data">Master Data</a></li>
@@ -228,9 +231,10 @@
                 <p id="successMessage" class="mb-4"></p>
             </div>
         </div>
-    </div>
 
-            <h3>Add Return</h3>
+
+
+                    <h3>Add Return</h3>
             <form id="return_form">
                 <div class="row mb-3">
                     <div class="col">
@@ -330,6 +334,9 @@
 
             
         </div>
+    </div>
+
+
 
         <div id="report" class="tab-pane fade">
             <h3>Inventory Report</h3>
@@ -433,18 +440,7 @@
             </div>
         </div>
 
-        <div id="dashboard" class="tab-pane fade">
-            <h3>Dashboard</h3>
-            <h1 class="text-2xl font-bold mb-4">Invoice Analysis</h1>
         
-                
-                
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h2 class="text-xl font-semibold mb-2">Bills and Returns vs. Invoice Date (Bar Chart)</h2>
-                    <canvas id="barChart" class="w-full h-64"></canvas>
-                </div>    
-
-        </div>
 
         <div id="sku_mapping" class="tab-pane fade">
                 <div class="bg-white p-6 rounded-lg shadow-md mb-6">
@@ -503,38 +499,7 @@
         </div>
 
 
-        <div id="setting" class="tab-pane fade">
-            <h3>Settings</h3>
-            <button class="btn btn-danger" onclick="truncateDatabase()">Clear Database</button>
 
-            <div id="category" class="">
-                <div class="summary">
-                    <h3>Category Management</h3>
-                    <p>Total Categories: <span id="category_total_entries">0</span></p>
-                </div>
-
-                <h3>Add Category</h3>
-                <form id="category_form">
-                    <div class="row mb-3">
-                        <div class="col">
-                            <input type="text" id="category_name" class="form-control" placeholder="Category Name" required>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Add Category</button>
-                </form>
-
-                <h3>Category List</h3>
-                <table id="category_table" class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Name</th><th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="category_list"></tbody>
-                </table>
-            </div>
-
-        </div>
 
         
 
@@ -721,6 +686,53 @@
 
 
     </div>
+
+
+            <div id="setting" class="tab-pane fade">
+            <h3>Settings</h3>
+            <button class="btn btn-danger" onclick="truncateDatabase()">Clear Database</button>
+
+            <div id="category" class="">
+                <div class="summary">
+                    <h3>Category Management</h3>
+                    <p>Total Categories: <span id="category_total_entries">0</span></p>
+                </div>
+
+                <h3>Add Category</h3>
+                <form id="category_form">
+                    <div class="row mb-3">
+                        <div class="col">
+                            <input type="text" id="category_name" class="form-control" placeholder="Category Name" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Category</button>
+                </form>
+
+                <h3>Category List</h3>
+                <table id="category_table" class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th><th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="category_list"></tbody>
+                </table>
+            </div>
+
+        </div>
+
+        <div id="dashboard" class="tab-pane fade">
+            <h3>Dashboard</h3>
+            <h1 class="text-2xl font-bold mb-4">Invoice Analysis</h1>
+        
+                
+                
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold mb-2">Bills and Returns vs. Invoice Date (Bar Chart)</h2>
+                    <canvas id="barChart" class="w-full h-64"></canvas>
+                </div>    
+
+        </div>
 
     <!-- Modals -->
     <div class="modal fade" id="editPurchaseModal" tabindex="-1" aria-labelledby="editPurchaseModalLabel" aria-hidden="true">
@@ -1361,7 +1373,7 @@ function renderEditableTable(data) {
     });
 
     // Render the result
-    const resultDiv = document.getElementById('result');
+    const resultDiv = document.getElementById('result_Of_bills');
     resultDiv.innerHTML = '';
     resultDiv.appendChild(table);
 
@@ -2111,7 +2123,7 @@ async function loadReadyToSale() {
         document.addEventListener('DOMContentLoaded', () => {
     const returnForm = document.getElementById('returnForm');
     const clearFormBtn = document.getElementById('clearForm');
-    /*const returnsTableBody = document.getElementById('returnsTableBody');*/
+    const returnsTableBody = document.getElementById('returnsTableBody');
 
     // Fetch and populate dropdowns
     async function loadDropdowns() {
@@ -2133,7 +2145,7 @@ async function loadReadyToSale() {
     }
 
     // Load returns data
-    /*async function loadReturns() {
+    async function loadReturns() {
         const response = await fetch('/api/returns');
         const returns = await response.json();
         returnsTableBody.innerHTML = '';
@@ -2181,7 +2193,7 @@ async function loadReadyToSale() {
         returnForm.reset();
         document.getElementById('returnId').value = '';
         document.getElementById('submitReturn').textContent = 'Save Return';
-    });*/
+    });
 
     // Submit form
     returnForm.addEventListener('submit', async (e) => {
