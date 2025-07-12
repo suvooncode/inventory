@@ -12,6 +12,18 @@ import tempfile
 from werkzeug.utils import secure_filename
 import json
 
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib import colors
+from datetime import datetime
+import random
+
+from fpdf import FPDF
+import qrcode
+import tempfile
+import io
+import re
+
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -1603,6 +1615,241 @@ def adjust_return_loss():
         return jsonify({'error': 'invalid loss amount format'}), 400
     except Exception as e:
         return jsonify({'error': f'error updating returns: {str(e)}'}), 400
+
+
+NUM_BLOCKS = 36
+SHORT_MESSAGES = [
+    "Feel good every day", "Comfort that empowers you", "Made to love yourself",
+    "Softness meets strength", "Wear confidence daily", "Graceful, bold, beautiful you",
+    "Power in every layer", "Comfort is self-love", "Love your shape always",
+    "You deserve the best", "Unmatched softness, perfect fit", "Shine from within",
+    "Beauty with comfort inside", "Feel relaxed, feel amazing", "Strong. Soft. You.",
+    "Glow with inner peace", "Be bold. Be comfy.", "Confidence underneath everything",
+    "Carefully crafted for you", "Support that hugs gently", "Celebrate your curves today",
+    "Your comfort is our joy", "Confidence starts from inside", "Your style, your comfort",
+    "Designed for every woman", "Beautiful inside and out", "Feel the loving softness",
+    "Start your day with grace", "Pamper your beautiful self", "Elegance under every outfit",
+    "Every layer loves you", "Every woman deserves this", "Wrap yourself in love",
+    "Step into daily comfort", "You're always worth comfort", "Let your beauty shine"
+]
+
+
+@app.route('/api/generate_pdf', methods=['POST'])
+def generate_pdf():
+    SIZE_SETS = {
+    "Panty": {"XS": "XS  | 75 cm | 30", "S": "S   | 80 cm | 32", "M": "M   | 85 cm | 34",
+              "L": "L   | 90 cm | 36", "XL": "XL  | 95 cm | 38", "XXL": "XXL  | 100 cm | 40"},
+    "Leggins": {"XS": "XS  | 75 cm | 30", "S": "S   | 80 cm | 32", "M": "M   | 85 cm | 34",
+                "L": "L   | 90 cm | 36", "XL": "XL  | 95 cm | 38", "XXL": "XXL  | 100 cm | 40"},
+    "Camisole": {"XS": "XS  | 75 cm | 30", "S": "S   | 80 cm | 32", "M": "M   | 85 cm | 34",
+                 "L": "L   | 90 cm | 36", "XL": "XL  | 95 cm | 38", "XXL": "XXL  | 100 cm | 40"},
+    "Bra": {"XS": "XS  | 75 cm | 30", "S": "S   | 80 cm | 32", "M": "M   | 85 cm | 34",
+            "L": "L   | 90 cm | 36", "XL": "XL  | 95 cm | 38", "XXL": "XXL  | 100 cm | 40"}
+    }
+    
+    print("Headers:", request.headers)
+    print("Raw data:", request.data)  # Raw body content
+    print("request.get_json(force=True):", request.get_json(force=True))
+    
+    data = request.get_json(force=True) #request.json
+    print("data============>",data)
+    category ="Panty" # data.get('category', 'Panty')
+    xs_count = int(data.get('xs_count', 0))
+    s_count = int(data.get('s_count', 9))
+    m_count = int(data.get('m_count', 9))
+    l_count = int(data.get('l_count', 9))
+    xl_count = int(data.get('xl_count', 9))
+    xxl_count = int(data.get('xxl_count', 0))
+    brand_text = data.get('brand_text', 'Collect Now')
+    brand_color = data.get('brand_color', '#FF0000')
+    brand_font = data.get('brand_font', 'Helvetica-Bold')
+    brand_size = int(data.get('brand_size', 12))
+    size_text = data.get('size_text', '')
+    size_color = data.get('size_color', '#00008B')
+    size_font = data.get('size_font', 'Helvetica-Bold')
+    size_size = int(data.get('size_size', 10))
+    message_color = data.get('message_color', '#FF00FF')
+    message_font = data.get('message_font', 'Helvetica-Bold')
+    message_size = int(data.get('message_size', 8))
+    thanks_text = data.get('thanks_text', 'Thank you for choosing us')
+    thanks_color = data.get('thanks_color', '#000000')
+    thanks_font = data.get('thanks_font', 'Helvetica')
+    thanks_size = int(data.get('thanks_size', 7))
+    url_text = data.get('url_text', 'collectnow.in | 7872427219')
+    url_color = data.get('url_color', '#0000FF')
+    url_font = data.get('url_font', 'Helvetica-Bold')
+    url_size = int(data.get('url_size', 8))
+    emoji_text =data.get('emoji_text', '❤️').strip()
+
+    # Clean emoji to remove unwanted codepoints like ZWJ and variation selectors
+    emoji_text_raw = data.get('emoji_text', '❤️')
+    emoji_text = re.sub(r'[\uFE0F\u200D]', '', emoji_text_raw).strip()
+
+    emoji_color = data.get('emoji_color', '#FF0000')
+    emoji_size = int(data.get('emoji_size', 9))
+
+    total = xs_count + s_count + m_count + l_count + xl_count + xxl_count
+    if total != NUM_BLOCKS:
+        return {'error': f'Total must be exactly {NUM_BLOCKS}. You entered {total}.'}, 400
+
+    now = datetime.now()
+    filename = f"ladies_comfort_cards_{category.lower()}_{now.strftime('%Y%m%d_%H%M%S')}.pdf"
+    filepath = os.path.join(os.getcwd(), filename)
+    print("category ==============>", data.get('category'))
+    print("SIZE_SETS[category]['XS']===========>",SIZE_SETS.get(category))
+    sizes = (
+        [SIZE_SETS[category]["XS"]] * xs_count +
+        [SIZE_SETS[category]["S"]] * s_count +
+        [SIZE_SETS[category]["M"]] * m_count +
+        [SIZE_SETS[category]["L"]] * l_count +
+        [SIZE_SETS[category]["XL"]] * xl_count +
+        [SIZE_SETS[category]["XXL"]] * xxl_count
+    )
+    random.shuffle(sizes)
+
+    c = canvas.Canvas(filepath, pagesize=A4)
+    width, height = A4
+    cols = 4
+    rows = 9
+    block_width = width / cols
+    block_height = height / rows
+
+    for i in range(NUM_BLOCKS):
+        x = (i % cols) * block_width
+        y = height - ((i // cols + 1) * block_height)
+        center_x = x + block_width / 2
+        top_y = y + block_height
+
+        c.setStrokeColor(colors.lightpink)
+        c.setLineWidth(1)
+        c.rect(x + 4, y + 4, block_width - 8, block_height - 8, stroke=1, fill=0)
+
+        c.setFont(brand_font, brand_size)
+        c.setFillColor(colors.HexColor(brand_color))
+        c.drawCentredString(center_x, top_y - 20, brand_text)
+
+        c.setFont("Helvetica", emoji_size)
+        c.setFillColor(colors.HexColor(emoji_color))
+        c.drawCentredString(center_x, top_y - 35, emoji_text)
+
+        c.setFont(size_font, size_size)
+        c.setFillColor(colors.HexColor(size_color))
+        c.drawCentredString(center_x, top_y - 45, sizes[i])
+
+        c.setFont(message_font, message_size)
+        c.setFillColor(colors.HexColor(message_color))
+        c.drawCentredString(center_x, top_y - 60, SHORT_MESSAGES[i])
+
+        c.setFont(thanks_font, thanks_size)
+        c.setFillColor(colors.HexColor(thanks_color))
+        c.drawCentredString(center_x, y + 20, thanks_text)
+
+        c.setFont(url_font, url_size)
+        c.setFillColor(colors.HexColor(url_color))
+        c.drawCentredString(center_x, y + 8, url_text)
+
+    c.save()
+    return send_file(filepath, as_attachment=True, download_name=filename)
+
+
+
+
+@app.route('/api/generate-promo-pdf', methods=['POST'])
+def generate_promo_pdf():
+    #try:
+        data = request.get_json(force=True)
+        # request.get_json(force=True)
+
+        promo_text = data.get("promoText", "More discount")
+        shop_text = data.get("shopText", "collectnow.in")
+        qr_text = data.get("qrText", "collectnow.in")
+        promo_color = hex_to_rgb(data.get("promoColor", "#FF1493"))
+        shop_color = hex_to_rgb(data.get("shopColor", "#0000FF"))
+        code_color = hex_to_rgb(data.get("codeColor", "#8A2BE2"))
+
+        codes = data.get("codes", [])
+        counts = data.get("counts", [])
+
+        # flatten codes to 36 items based on counts
+        all_codes = []
+        for code, count in zip(codes, counts):
+            all_codes.extend([code] * int(count))
+        all_codes = all_codes[:36]
+
+        pdf = FPDF(orientation='P', unit='mm', format='A4')
+        pdf.add_page()
+
+        total_cards = 36
+        cols, rows = 6, 6
+        page_width, page_height = 210, 297
+        margin, padding = 5, 2
+        card_width = (page_width - 2 * margin) / cols
+        card_height = (page_height - 2 * margin) / rows
+        x_start, y_start = margin, margin
+        qr_images = []
+
+        for index in range(total_cards):
+            code = all_codes[index] if index < len(all_codes) else "N/A"
+            col = index % cols
+            row = index // cols
+            x = x_start + col * card_width
+            y = y_start + row * card_height
+
+            pdf.set_draw_color(200, 200, 200)
+            pdf.rect(x, y, card_width, card_height)
+
+            text_x = x + padding
+            text_y = y + padding
+            qr_size = card_height - 2 * padding
+            qr_side = qr_size * 0.45
+            text_width = card_width - 2 * padding
+
+            pdf.set_xy(text_x, text_y)
+            pdf.set_font("Arial", "B", 8)
+            pdf.set_text_color(*promo_color)
+            pdf.multi_cell(text_width, 3, promo_text, align='C')
+
+            pdf.set_text_color(*shop_color)
+            pdf.set_font("Arial", "", 7)
+            pdf.set_xy(text_x, pdf.get_y())
+            pdf.multi_cell(text_width, 3, shop_text, align='C')
+
+            pdf.set_text_color(*code_color)
+            pdf.set_font("Arial", "B", 8)
+            pdf.set_xy(text_x, pdf.get_y())
+            pdf.multi_cell(text_width, 3, f"Code: {code}", align='C')
+
+            qr_img = qrcode.make(qr_text)
+            img_path = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+            qr_img.save(img_path)
+            qr_images.append(img_path)
+
+            qr_x = x + (card_width - qr_side) / 2
+            qr_y = pdf.get_y() + padding
+            pdf.image(img_path, qr_x, qr_y, qr_side, qr_side)
+
+        # Save PDF to BytesIO
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
+            pdf.output(tmp_pdf.name)
+            tmp_pdf_path = tmp_pdf.name
+
+        return send_file(
+            tmp_pdf_path,
+            as_attachment=True,
+            download_name="promo_cards.pdf",
+            mimetype="application/pdf"
+        )
+
+
+    # except Exception as e:
+    #     return jsonify({"error": str(e)}), 500
+
+
+def hex_to_rgb(hex_color):
+    hex_color = hex_color.lstrip("#")
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+
       
 @app.route('/download')
 def download_excel():

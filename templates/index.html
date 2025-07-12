@@ -26,7 +26,115 @@
         .bg-white.p-6.rounded-lg.shadow-md { min-height: unset; }
         .fade {display:none !important;}
         .active{display:block !important;}
+        .marketing-form { max-width: 600px; margin: 0 auto; }
+        .marketing-form .row { margin-bottom: 10px; display: flex; align-items: center; }
+        .marketing-form label { width: 120px; }
+        .marketing-form input, .marketing-form select { width: 100px; margin-right: 10px; }
+        .marketing-form button { width: 80px; }
     </style>
+    <style>
+  .marketing-form {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #f9fafb;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .marketing-form h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+
+  .marketing-form h3 {
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: #374151;
+    margin: 1.5rem 0 1rem;
+  }
+
+  .marketing-form .row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .marketing-form label {
+    width: 120px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #4b5563;
+  }
+
+  .marketing-form input,
+  .marketing-form select {
+    flex: 1;
+    min-width: 120px;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #1f2937;
+    transition: border-color 0.2s ease;
+  }
+
+  .marketing-form input:focus,
+  .marketing-form select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  }
+
+  .marketing-form input[type="color"] {
+    width: 60px;
+    height: 36px;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .marketing-form input[type="number"] {
+    max-width: 100px;
+  }
+
+  .marketing-form .btn-success {
+    display: block;
+    width: 200px;
+    margin: 1.5rem auto 0;
+    padding: 0.75rem;
+    background-color: #10b981;
+    color: white;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+  }
+
+  .marketing-form .btn-success:hover {
+    background-color: #059669;
+  }
+
+  @media (max-width: 600px) {
+    .marketing-form .row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .marketing-form label {
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+
+    .marketing-form input,
+    .marketing-form select {
+      width: 100%;
+    }
+  }
+</style>
 </head>
 <body>
     <ul class="nav nav-tabs">
@@ -41,6 +149,8 @@
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#master_data">Master Data</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sku_mapping">SKU Mapping</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#setting">Setting</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#marketing">Marketing</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#Promocard">Promocard</a></li>
     </ul>
 
     
@@ -733,6 +843,187 @@
                 </div>    
 
         </div>
+
+        <div id="Promocard" class="tab-pane fade">
+                    <div class="container mt-4">
+                    <h3 class="mb-4 text-primary">Promo Card Generator</h3>
+                    <form id="promoForm">
+                        <div class="mb-3">
+                        <label class="form-label">Promotion Text</label>
+                        <input type="text" class="form-control" id="promoText" value="More discount">
+                        </div>
+                        <div class="mb-3">
+                        <label class="form-label">Promotion Text Color</label>
+                        <input type="color" class="form-control form-control-color" id="promoColor" value="#FF1493">
+                        </div>
+                        <div class="mb-3">
+                        <label class="form-label">Shop At</label>
+                        <input type="text" class="form-control" id="shopText" value="collectnow.in">
+                        </div>
+                        <div class="mb-3">
+                        <label class="form-label">Shop Text Color</label>
+                        <input type="color" class="form-control form-control-color" id="shopColor" value="#0000FF">
+                        </div>
+                        <div class="mb-3">
+                        <label class="form-label">Promo Code Color</label>
+                        <input type="color" class="form-control form-control-color" id="codeColor" value="#8A2BE2">
+                        </div>
+                        <div id="promoCodes">
+                        <!-- Dynamically adding 4 promo code blocks -->
+                        <div class="row mb-2">
+                            <div class="col">
+                            <input type="text" class="form-control" name="codes[]" value="FLIP20" placeholder="Promo Code">
+                            </div>
+                            <div class="col">
+                            <input type="number" class="form-control" name="counts[]" value="9" placeholder="Count">
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col">
+                            <input type="text" class="form-control" name="codes[]" value="AMZ20">
+                            </div>
+                            <div class="col">
+                            <input type="number" class="form-control" name="counts[]" value="9">
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col">
+                            <input type="text" class="form-control" name="codes[]" value="MEE20">
+                            </div>
+                            <div class="col">
+                            <input type="number" class="form-control" name="counts[]" value="9">
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col">
+                            <input type="text" class="form-control" name="codes[]" value="WOW20">
+                            </div>
+                            <div class="col">
+                            <input type="number" class="form-control" name="counts[]" value="9">
+                            </div>
+                        </div>
+                        </div>
+                        <div class="mb-3">
+                        <label class="form-label">QR Code Text</label>
+                        <input type="text" class="form-control" id="qrText" value="collectnow.in">
+                        </div>
+                        <button type="submit" class="btn btn-success">Generate PDF</button>
+                    </form>
+                    </div>
+                </div>
+
+        <div id="marketing" class="tab-pane fade">
+    <div class="container mx-auto p-4">
+        <h2 class="text-xl font-semibold mb-4">Marketing - Comfort Card Generator</h2>
+        <div class="bg-white p-6 rounded-lg shadow-md marketing-form">
+            <div class="mb-3">
+                <label for="category" class="form-label">Select Category:</label>
+                <select id="category" class="form-select w-100">
+                    <option value="Panty" selected>Panty</option>
+                    <option value="Leggins">Leggins</option>
+                    <option value="Camisole">Camisole</option>
+                    <option value="Bra">Bra</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <h3>Size Counts (Total must be 36)</h3>
+                <div class="row">
+                    <label for="xs_count" class="form-label">XS:</label>
+                    <input type="number" id="xs_count" class="form-control w-100" value="0" min="0" max="36">
+                </div>
+                <div class="row">
+                    <label for="s_count" class="form-label">S:</label>
+                    <input type="number" id="s_count" class="form-control w-100" value="9" min="0" max="36">
+                </div>
+                <div class="row">
+                    <label for="m_count" class="form-label">M:</label>
+                    <input type="number" id="m_count" class="form-control w-100" value="9" min="0" max="36">
+                </div>
+                <div class="row">
+                    <label for="l_count" class="form-label">L:</label>
+                    <input type="number" id="l_count" class="form-control w-100" value="9" min="0" max="36">
+                </div>
+                <div class="row">
+                    <label for="xl_count" class="form-label">XL:</label>
+                    <input type="number" id="xl_count" class="form-control w-100" value="9" min="0" max="36">
+                </div>
+                <div class="row">
+                    <label for="xxl_count" class="form-label">XXL:</label>
+                    <input type="number" id="xxl_count" class="form-control w-100" value="0" min="0" max="36">
+                </div>
+            </div>
+            <div class="mb-3">
+                <h3>Text Customization</h3>
+                <div class="row">
+                    <label for="brand_text" class="form-label">Brand Text:</label>
+                    <input type="text" id="brand_text" class="form-control w-100" value="Collect Now">
+                    <input type="color" id="brand_color" class="form-control w-100" value="#FF0000">
+                    <select id="brand_font" class="form-select w-100">
+                        <option value="Helvetica" selected>Helvetica</option>
+                        <option value="Helvetica-Bold">Helvetica-Bold</option>
+                        <option value="Helvetica-Oblique">Helvetica-Oblique</option>
+                        <option value="Helvetica-BoldOblique">Helvetica-BoldOblique</option>
+                    </select>
+                    <input type="number" id="brand_size" class="form-control w-100" value="12" min="1" max="20">
+                </div>
+                <div class="row">
+                    <label for="size_text" class="form-label">Size Text:</label>
+                    <input type="text" id="size_text" class="form-control w-100" value="">
+                    <input type="color" id="size_color" class="form-control w-100" value="#00008B">
+                    <select id="size_font" class="form-select w-100">
+                        <option value="Helvetica" selected>Helvetica</option>
+                        <option value="Helvetica-Bold">Helvetica-Bold</option>
+                        <option value="Helvetica-Oblique">Helvetica-Oblique</option>
+                        <option value="Helvetica-BoldOblique">Helvetica-BoldOblique</option>
+                    </select>
+                    <input type="number" id="size_size" class="form-control w-100" value="10" min="1" max="20">
+                </div>
+                <div class="row">
+                    <label for="message_color" class="form-label">Message Color:</label>
+                    <input type="color" id="message_color" class="form-control w-100" value="#FF00FF">
+                    <select id="message_font" class="form-select w-100">
+                        <option value="Helvetica" selected>Helvetica</option>
+                        <option value="Helvetica-Bold">Helvetica-Bold</option>
+                        <option value="Helvetica-Oblique">Helvetica-Oblique</option>
+                        <option value="Helvetica-BoldOblique">Helvetica-BoldOblique</option>
+                    </select>
+                    <input type="number" id="message_size" class="form-control w-100" value="8" min="1" max="20">
+                </div>
+                <div class="row">
+                    <label for="thanks_text" class="form-label">Thanks Text:</label>
+                    <input type="text" id="thanks_text" class="form-control w-100" value="Thank you for choosing us">
+                    <input type="color" id="thanks_color" class="form-control w-100" value="#000000">
+                    <select id="thanks_font" class="form-select w-100">
+                        <option value="Helvetica" selected>Helvetica</option>
+                        <option value="Helvetica-Bold">Helvetica-Bold</option>
+                        <option value="Helvetica-Oblique">Helvetica-Oblique</option>
+                        <option value="Helvetica-BoldOblique">Helvetica-BoldOblique</option>
+                    </select>
+                    <input type="number" id="thanks_size" class="form-control w-100" value="7" min="1" max="20">
+                </div>
+                <div class="row">
+                    <label for="url_text" class="form-label">URL Text:</label>
+                    <input type="text" id="url_text" class="form-control w-100" value="collectnow.in | 7872427219">
+                    <input type="color" id="url_color" class="form-control w-100" value="#0000FF">
+                    <select id="url_font" class="form-select w-100">
+                        <option value="Helvetica" selected>Helvetica</option>
+                        <option value="Helvetica-Bold">Helvetica-Bold</option>
+                        <option value="Helvetica-Oblique">Helvetica-Oblique</option>
+                        <option value="Helvetica-BoldOblique">Helvetica-BoldOblique</option>
+                    </select>
+                    <input type="number" id="url_size" class="form-control w-100" value="8" min="1" max="20">
+                </div>
+                <div class="row">
+                    <label for="emoji_text" class="form-label">Emoji:</label>
+                    <input type="text" id="emoji_text" class="form-control w-100" value="❤️">
+                    <input type="color" id="emoji_color" class="form-control w-100" value="#FF0000">
+                    <input type="number" id="emoji_size" class="form-control w-100" value="9" min="1" max="20">
+                </div>
+            </div>
+            <button id="generate_pdf" class="btn btn-success">Generate PDF</button>
+        </div>
+    </div>
+</div>
 
     <!-- Modals -->
     <div class="modal fade" id="editPurchaseModal" tabindex="-1" aria-labelledby="editPurchaseModalLabel" aria-hidden="true">
@@ -2162,11 +2453,11 @@ async function loadReadyToSale() {
                 <td class="py-2 px-4 border">${r.loss_amount}</td>
                 <td class="py-2 px-4 border">${r.date}</td>
                 <td class="py-2 px-4 border">
-                    <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 edit-btn" data-id="${r.id}">Edit</button>
-                    <button class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 delete-btn" data-id="${r.id}">Delete</button>
+                    <button class="btn btn-warning" data-id="${r.id}">Edit</button>
+                    <button class="btn btn-danger" data-id="${r.id}">Delete</button>
                     ${r.add_to_stock ? `
-                        <button class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 ready-btn" data-id="${r.id}" data-quantity="${r.quantity}">To Ready</button>
-                        <button class="bg-purple-500 text-white px-2 py-1 rounded hover:bg-purple-600 sale-btn" data-id="${r.id}" data-quantity="${r.quantity}">To Sale</button>
+                        <button class="btn btn-success" data-id="${r.id}" data-quantity="${r.quantity}">To Ready</button>
+                        <button class="btn btn-danger" data-id="${r.id}" data-quantity="${r.quantity}">To Sale</button>
                     ` : ''}
                 </td>
             `;
@@ -2494,6 +2785,119 @@ async function fetchInvoiceSummary() {
     
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+    // Fix tab-pane blank space
+    const tabs = document.querySelectorAll('.nav-link');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('show', 'active');
+                pane.style.display = 'none';
+            });
+            const targetId = tab.getAttribute('href').substring(1);
+            const targetPane = document.getElementById(targetId);
+            targetPane.classList.add('show', 'active');
+            targetPane.style.display = 'block';
+        });
+    });
+
+    // Marketing tab PDF generation
+    const generateButton = document.getElementById('generate_pdf');
+    generateButton.addEventListener('click', async () => {
+        const data = {
+            category: document.getElementById('category').value,
+            xs_count: parseInt(document.getElementById('xs_count').value),
+            s_count: parseInt(document.getElementById('s_count').value),
+            m_count: parseInt(document.getElementById('m_count').value),
+            l_count: parseInt(document.getElementById('l_count').value),
+            xl_count: parseInt(document.getElementById('xl_count').value),
+            xxl_count: parseInt(document.getElementById('xxl_count').value),
+            brand_text: document.getElementById('brand_text').value,
+            brand_color: document.getElementById('brand_color').value,
+            brand_font: document.getElementById('brand_font').value,
+            brand_size: parseInt(document.getElementById('brand_size').value),
+            size_text: document.getElementById('size_text').value,
+            size_color: document.getElementById('size_color').value,
+            size_font: document.getElementById('size_font').value,
+            size_size: parseInt(document.getElementById('size_size').value),
+            message_color: document.getElementById('message_color').value,
+            message_font: document.getElementById('message_font').value,
+            message_size: parseInt(document.getElementById('message_size').value),
+            thanks_text: document.getElementById('thanks_text').value,
+            thanks_color: document.getElementById('thanks_color').value,
+            thanks_font: document.getElementById('thanks_font').value,
+            thanks_size: parseInt(document.getElementById('thanks_size').value),
+            url_text: document.getElementById('url_text').value,
+            url_color: document.getElementById('url_color').value,
+            url_font: document.getElementById('url_font').value,
+            url_size: parseInt(document.getElementById('url_size').value),
+            emoji_text: document.getElementById('emoji_text').value,
+            emoji_color: document.getElementById('emoji_color').value,
+            emoji_size: parseInt(document.getElementById('emoji_size').value)
+        };
+
+        const total = data.xs_count + data.s_count + data.m_count + data.l_count + data.xl_count + data.xxl_count;
+        if (total !== 36) {
+            alert(`Total must be exactly 36. You entered ${total}.`);
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/generate_pdf', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                alert(error.error);
+                return;
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ladies_comfort_cards_${data.category.toLowerCase()}_${new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 15)}.pdf`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            alert('Failed to generate PDF. Please try again.');
+        }
+    });
+});
+
+
+document.getElementById("promoForm").addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    const data = {
+      promoText: document.getElementById("promoText").value,
+      shopText: document.getElementById("shopText").value,
+      qrText: document.getElementById("qrText").value,
+      promoColor: document.getElementById("promoColor").value,
+      shopColor: document.getElementById("shopColor").value,
+      codeColor: document.getElementById("codeColor").value,
+      codes: Array.from(document.getElementsByName("codes[]")).map(e => e.value),
+      counts: Array.from(document.getElementsByName("counts[]")).map(e => parseInt(e.value))
+    };
+
+    const response = await fetch("/api/generate-promo-pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url);
+    } else {
+      alert("Failed to generate PDF");
+    }
+  });
 /*
 <th>AWB</th>
                                 <th>Order ID</th>
