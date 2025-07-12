@@ -3,9 +3,13 @@ build/
 
 uploads/
 
+# Ignore xls, xlsx,csv files
 *.xlsx
 *.xls
 *.csv
+
+# Ignore pdf files
+*.pdf
 
 # Ignore specific files
 file_name.ext
