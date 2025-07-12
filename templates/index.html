@@ -468,6 +468,41 @@
                 <!--<table id="summaryTable" class="display" style="width: 100%;"></table>-->
             </div>
 
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="mb-4">
+                    <label class="block text-gray-700 mb-2" for="folderInput">Select Folder with PDFs:</label>
+                    <input type="file" id="folderInput" name="folder" webkitdirectory directory multiple class="border border-gray-300 p-2 rounded w-full" accept=".pdf">
+                </div>
+                <div class="mb-4">
+                    <button id="bulkUploadBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        Upload and Process PDFs
+                    </button>
+                </div>
+                
+                <div id="status" class="mb-4 text-gray-700"></div>
+                
+                <div id="result" class="hidden">
+                    <h2 class="text-xl font-semibold mb-2">Upload Results</h2>
+                    <table class="w-full border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="border border-gray-300 p-2">Invoice No</th>
+                                <th class="border border-gray-300 p-2">PDF Name</th>
+                                <th class="border border-gray-300 p-2">AWB Number</th>
+                                <th class="border border-gray-300 p-2">Order ID</th>
+                                <th class="border border-gray-300 p-2">Invoice Date</th>
+                                <th class="border border-gray-300 p-2">Customer Name</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultTable"></tbody>
+                    </table>
+                    <a id="downloadLink" class="mt-4 inline-block bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                        Download Excel
+                    </a>
+                </div>
+        </div>
+    
+
             
             <h2>🧾 Invoice PDF Extractor & Resizer</h2>
 
@@ -642,6 +677,59 @@
 document.getElementById('load-invoices').addEventListener('click', fetchSavedInvoices);
 document.addEventListener('DOMContentLoaded', () => {fetchInvoiceSummary();});
 
+
+$(document).ready(function() {
+            $('#bulkUploadBtn').click(function() {
+                const files = $('#folderInput')[0].files;
+                if (files.length === 0) {
+                    $('#status').text('Please select a folder with PDFs.');
+                    return;
+                }
+
+                $('#status').text('Uploading and processing PDFs... Please wait.');
+                $('#result').addClass('hidden');
+                $('#resultTable').empty();
+
+                const formData = new FormData();
+                for (const file of files) {
+                    if (file.name.toLowerCase().endsWith('.pdf')) {
+                        formData.append('folder', file, file.webkitRelativePath || file.name);
+                    }
+                }
+
+                $.ajax({
+                    url: '/api/bulk_upload_folder',
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        $('#status').text(response.message);
+                        if (response.data && response.data.length > 0) {
+                            response.data.forEach(function(item) {
+                                $('#resultTable').append(`
+                                    <tr>
+                                        <td class="border border-gray-300 p-2">${item['Invoice No'] || 'NA'}</td>
+                                        <td class="border border-gray-300 p-2">${item['pdf_name'] || 'NA'}</td>
+                                        <td class="border border-gray-300 p-2">${item['AWB Number'] || 'NA'}</td>
+                                        <td class="border border-gray-300 p-2">${item['Order ID'] || 'NA'}</td>
+                                        <td class="border border-gray-300 p-2">${item['Invoice Date'] || 'NA'}</td>
+                                        <td class="border border-gray-300 p-2">${item['Customer Name'] || 'NA'}</td>
+                                    </tr>
+                                `);
+                            });
+                            $('#downloadLink').attr('href', response.excel_path);
+                            $('#result').removeClass('hidden');
+                        } else {
+                            $('#status').text('No new invoices processed (possible duplicates or no valid PDFs).');
+                        }
+                    },
+                    error: function(xhr) {
+                        $('#status').text('Error: ' + (xhr.responseJSON?.error || 'Failed to process PDFs'));
+                    }
+                });
+            });
+        });
 
 // bills js start
 async function postData(endpoint, data) {
@@ -1779,7 +1867,7 @@ function openReturnModal(billId, invoiceNo) {
                     </div>
                     <div>
                         <label>Quantity:</label>
-                        <input type="number" id="quantity" value="1" min="1" required>
+                        <input type="input" id="quantity" value="1" min="1" required>
                     </div>
                     <div>
                         <label>Loss Amount:</label>
@@ -1822,7 +1910,7 @@ async function submitReturn() {
         type_id: document.getElementById('type_id').value,
         size_id: document.getElementById('size_id').value,
         supplier_id: document.getElementById('supplier_id').value,
-        quantity: document.getElementById('quantity').value,
+        quantity: document.getElementById('quantity').value || 1,
         loss_amount: document.getElementById('loss_amount').value,
         reason: document.getElementById('reason').value
     };

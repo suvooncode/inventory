@@ -52,7 +52,9 @@ def init_db():
             CREATE TABLE IF NOT EXISTS invoices (
                 bill_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 pdf_name TEXT,
-                invoice_no TEXT
+                awb_number TEXT,
+                invoice_no TEXT,
+                order_id TEXT
             );
             CREATE TABLE IF NOT EXISTS invoice_metadata (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1179,8 +1181,25 @@ def delete_invoice():
 def list_saved_invoices_m():
     with sqlite3.connect(DB_PATH) as conn:
         c = conn.cursor()
+        # SELECT 
+        #         i.bill_id,
+        #         i.invoice_no,
+        #         i.pdf_name,
+        #         i.awb_number,
+        #         i.order_id,
+        #         MAX(CASE WHEN m.meta_key = 'Invoice Date' THEN m.meta_value END) AS invoice_date,
+        #         MAX(CASE WHEN m.meta_key = 'Customer Name' THEN m.meta_value END) AS customer_name,
+        #         MAX(CASE WHEN m.meta_key = 'State' THEN m.meta_value END) AS state,
+        #         MAX(CASE WHEN m.meta_key = 'Payment Type' THEN m.meta_value END) AS payment_type,
+        #         MAX(CASE WHEN m.meta_key = 'return' THEN m.meta_value END) AS return_status,
+        #         MAX(CASE WHEN m.meta_key = 'return_type' THEN m.meta_value END) AS return_type,
+        #         MAX(CASE WHEN m.meta_key = 'reason' THEN m.meta_value END) AS return_reason
+        #     FROM invoices i
+        #     LEFT JOIN invoice_metadata m ON i.bill_id = m.bill_id
+        #     GROUP BY i.bill_id
+        #     ORDER BY i.bill_id DESC
         c.execute('''
-            SELECT 
+                  SELECT 
                 i.bill_id,
                 i.invoice_no,
                 i.pdf_name,
@@ -1195,8 +1214,10 @@ def list_saved_invoices_m():
                 MAX(CASE WHEN m.meta_key = 'reason' THEN m.meta_value END) AS return_reason
             FROM invoices i
             LEFT JOIN invoice_metadata m ON i.bill_id = m.bill_id
+            WHERE i.order_id != 'NA'
             GROUP BY i.bill_id
-            ORDER BY i.bill_id DESC
+            ORDER BY MAX(CASE WHEN m.meta_key = 'Invoice Date' THEN m.meta_value END) DESC
+            
         ''')
         rows = c.fetchall()
         result = [
@@ -1255,7 +1276,61 @@ def invoice_summary():
             'total_returns': total_returns,
             'actual_sales': actual_sales,
             'summary': summary
-        })    
+        })  
+        
+@app.route('/api/bulk_upload_folder', methods=['POST'])
+def bulk_upload_folder():
+    if 'folder' not in request.files:
+        return jsonify({'error': 'No folder uploaded'}), 400
+
+    files = request.files.getlist('folder')
+    extracted_data = []
+    with sqlite3.connect(DB_PATH) as conn:
+        c = conn.cursor()
+        for file in files:
+            if file.filename.lower().endswith('.pdf'):
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                os.makedirs(os.path.dirname(filepath), exist_ok=True)
+                file.save(filepath)
+
+                # Check for duplicate
+                c.execute('SELECT 1 FROM invoices WHERE pdf_name = ?', (filename,))
+                if c.fetchone():
+                    continue
+
+                rows = extract_data_from_pdf(filepath)
+                for row in rows:
+                    invoice_no = row.get("Invoice No", "")
+                    awb_number = row.get("AWB Number", "unknown")
+                    order_id = row.get("Order ID", "unknown")
+
+                    # Check for AWB number duplicate
+                    c.execute('SELECT 1 FROM invoices WHERE awb_number = ?', (awb_number,))
+                    if c.fetchone():
+                        continue
+
+                    c.execute('INSERT INTO invoices (pdf_name, awb_number, invoice_no, order_id) VALUES (?, ?, ?, ?)',
+                             (filename, awb_number, invoice_no, order_id))
+                    bill_id = c.lastrowid
+
+                    for key, value in row.items():
+                        if key not in ["Invoice No", "AWB Number", "Order ID"]:
+                            c.execute('INSERT INTO invoice_metadata (bill_id, meta_key, meta_value) VALUES (?, ?, ?)',
+                                     (bill_id, key, value))
+                    extracted_data.append({**row, 'pdf_name': filename})
+
+        conn.commit()
+
+    df = pd.DataFrame(extracted_data)
+    excel_path = "bulk_folder_extracted.xlsx"
+    df.to_excel(excel_path, index=False)
+
+    return jsonify({
+        "message": f"{len(extracted_data)} invoices processed",
+        "data": extracted_data,
+        "excel_path": excel_path
+    }) 
     
 @app.route('/download')
 def download_excel():
