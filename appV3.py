@@ -28,9 +28,9 @@ app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-DB_PATH = 'inventoryV4.db'
+DB_PATH = 'inventory.db'
 def init_db():
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
         c.executescript('''
             CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY, name TEXT UNIQUE);
@@ -87,13 +87,6 @@ def init_db():
                 FOREIGN KEY (size_id) REFERENCES sizes(id),
                 FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
             );
-            CREATE TABLE IF NOT EXISTS sales_log (
-                sale_id TEXT PRIMARY KEY,
-                awb_number TEXT,
-                order_id TEXT,
-                created_at TEXT,
-                UNIQUE(awb_number, order_id)
-            )
         ''')
         default_data = {
             'categories': ['Bra', 'Panty', 'Camisole', 'Nighty'],
@@ -119,23 +112,12 @@ def extract_field(text, pattern, group=1):
 
 def extract_product_name(text):
     lines = text.splitlines()
-    print("Lines =====================>" ,lines)
-    # Define keyword groups and normalized values
-    keyword_map = {
-        'camisole': ['camisole', 'camisoles', 'Camisole', 'camisoles'],
-        'panty': ['panty', 'briefs', 'Panty'],
-        'nighty': ['nighty', 'Nighty'],
-    }
-
     for i, line in enumerate(lines):
-        # if re.search(r'Description\s+HSN\s+Qty', line, re.IGNORECASE):
+        if re.search(r'Description\s+HSN\s+Qty', line, re.IGNORECASE):
             if i + 1 < len(lines):
-                name_line = lines[i + 1].strip().lower()
-
-                for normalized, variants in keyword_map.items():
-                    for keyword in variants:
-                        if keyword.lower() in name_line:
-                            return normalized
+                name_line = lines[i + 1].strip()
+                if re.search(r'\b(panty|camisole|bra|printed panty|nighty|leggings)\b', name_line, re.IGNORECASE):
+                    return name_line
     return "NA"
 
 
@@ -190,7 +172,7 @@ def execute_raw_sql():
     data = request.json
     query = data.get('query')
     try:
-        with sqlite3.connect(DB_PATH) as conn:
+        with sqlite3.connect('inventory.db') as conn:
             c = conn.cursor()
             c.execute(query)
             conn.commit()
@@ -205,7 +187,7 @@ def manage_table(table):
     print("------------------------------------1")
     if table not in ['categories', 'types', 'sizes', 'suppliers']:
         return jsonify({'error': 'Invalid table'}), 400
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
         if request.method == 'GET':
             c.execute(f'SELECT id, name FROM {table}')
@@ -244,7 +226,7 @@ def manage_table(table):
         
 @app.route('/api/categories', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def manage_categories():
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
 
         if request.method == 'GET':
@@ -287,7 +269,7 @@ def merge_table(table):
     keep_id, merge_id = data['keep_id'], data['merge_id']
     if keep_id == merge_id:
         return jsonify({'error': 'Cannot merge same item'}), 400
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
         c.execute(f'SELECT 1 FROM {table} WHERE id = ?', (keep_id,))
         if not c.fetchone():
@@ -305,7 +287,7 @@ def merge_table(table):
 
 @app.route('/api/purchases', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def manage_purchases():
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
         if request.method == 'GET':
             c.execute('''
@@ -384,7 +366,7 @@ def manage_purchases():
 
 @app.route('/api/returns', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def manage_returns():
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
         if request.method == 'GET':
             c.execute('''
@@ -435,7 +417,7 @@ def manage_returns():
         
 @app.route('/api/ready_to_sale', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def manage_ready_to_sale():
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
 
         if request.method == 'GET':
@@ -548,7 +530,7 @@ def manage_ready_to_sale():
 
 @app.route('/api/ready_to_sale_summary', methods=['GET'])
 def ready_to_sale_summary():
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
 
         c.execute('''
@@ -599,7 +581,7 @@ def ready_to_sale_summary():
 
 @app.route('/api/sales', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def manage_sales():
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
         if request.method == 'GET':
             c.execute('''
@@ -668,7 +650,7 @@ def manage_sales():
 
 @app.route('/api/sales_sku_summary', methods=['GET'])
 def sales_sku_summary():
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
         c.execute('''
             SELECT 
@@ -694,7 +676,7 @@ def sales_sku_summary():
 
 @app.route('/api/inventory_summary', methods=['GET'])
 def inventory_summary():
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
         c.execute('''
             SELECT 
@@ -735,7 +717,7 @@ def inventory_summary():
 
 @app.route('/api/report', methods=['GET'])
 def get_report():
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
         c.execute('''
             SELECT 
@@ -802,14 +784,14 @@ def get_report():
 
 @app.route('/debug/purchases')
 def debug_purchases():
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
         c.execute("SELECT id, category_id, type_id, size_id, supplier_id, quantity, date FROM purchases")
         return jsonify(c.fetchall())
     
 @app.route('/debug/ready_to_sale', methods=['GET'])
 def debug_ready_to_sale():
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
         c.execute('''
             SELECT 
@@ -852,7 +834,7 @@ def returns_to_ready_to_sale():
     return_id = data.get('return_id')
     quantity = data.get('quantity')
     
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
         c.execute('''
             SELECT r.quantity, r.category_id, r.type_id, r.size_id, r.supplier_id
@@ -906,7 +888,7 @@ def returns_to_sale():
     return_id = data.get('return_id')
     quantity = data.get('quantity')
     
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
         c.execute('''
             SELECT r.quantity, r.category_id, r.type_id, r.size_id, r.supplier_id
@@ -962,7 +944,7 @@ def returns_to_sale():
 
 @app.route('/api/returns_report', methods=['GET'])
 def returns_report():
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
         c.execute('''
             SELECT 
@@ -994,7 +976,7 @@ def returns_report():
 
 @app.route('/api/truncate_database', methods=['POST'])
 def truncate_database():
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
         c.execute('PRAGMA foreign_keys = OFF')
         for table in ['sales', 'ready_to_sale', 'returns', 'purchases', 'categories', 'types', 'sizes', 'suppliers']:
@@ -1073,7 +1055,7 @@ def open_preview():
 @app.route('/api/save_selected/savexls', methods=['POST'])
 def save_selected():
     print("-------------ready")
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect('inventory.db') as conn:
         c = conn.cursor()
         # DROP TABLE IF EXISTS invoices;
         c.executescript('''
@@ -1864,204 +1846,6 @@ def generate_promo_pdf():
     # except Exception as e:
     #     return jsonify({"error": str(e)}), 500
 
-
-
-
-@app.route('/api/invoices_to_sale', methods=['POST'])
-def invoices_to_sale():
-    data = request.get_json(force=True)
-    selected_rows = data.get('selectedRows', [])
-    type_name = data.get('type', '').strip().lower()
-    supplier_name = data.get('supplier', '').strip().lower()
-
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-
-        # Get type_id
-        type_id = None
-        if type_name:
-            c.execute('SELECT id FROM types WHERE LOWER(name) = ?', (type_name,))
-            row = c.fetchone()
-            type_id = row[0] if row else None
-        if not type_id:
-            c.execute('SELECT id FROM types WHERE LOWER(name) = ?', ('good',))
-            row = c.fetchone()
-            type_id = row[0] if row else None
-
-        processed, duplicates, errors = [], [], []
-
-        for row in selected_rows:
-            awb_number = row.get('AWB Number', '').strip()
-            order_id = row.get('Order ID', '').strip()
-            size = row.get('Size', '').lower().strip()
-            product_name = row.get('Product Name', '').lower().strip()
-
-            print(f"\n⏳ Processing AWB: {awb_number}")
-
-            # Duplicate check
-            c.execute('SELECT sale_id FROM sales_log WHERE awb_number = ? AND order_id = ?', (awb_number, order_id))
-            if c.fetchone():
-                duplicates.append({'awb_number': awb_number, 'order_id': order_id})
-                print(f"⚠️ Duplicate found: {awb_number}")
-                continue
-
-            # Fetch invoice data
-            c.execute('''
-                SELECT i.bill_id, i.order_id, m.meta_value AS product_name, LOWER(REPLACE(m2.meta_value, 'cm', '')) AS size
-                FROM invoices i
-                LEFT JOIN invoice_metadata m ON i.bill_id = m.bill_id AND m.meta_key = 'Product Name'
-                LEFT JOIN invoice_metadata m2 ON i.bill_id = m2.bill_id AND m2.meta_key = 'Size'
-                WHERE i.awb_number = ? AND i.order_id = ?
-            ''', (awb_number, order_id))
-            invoice = c.fetchone()
-
-            if not invoice:
-                errors.append(f"Invoice not found for AWB {awb_number}, Order ID {order_id}")
-                continue
-
-            bill_id, order_id, db_product_name, db_size = invoice
-            db_product_name = db_product_name if db_product_name != "NA" else product_name
-            product_name = db_product_name.lower().strip() if db_product_name else product_name
-            size = db_size.lower().strip() if db_size else size
-
-            # Return check
-            c.execute('''
-                SELECT 1 FROM invoice_metadata 
-                WHERE bill_id = ? AND meta_key = "return" AND meta_value = "yes"
-            ''', (bill_id,))
-            if c.fetchone():
-                errors.append(f"Invoice {order_id} is marked as RETURN (AWB {awb_number})")
-                continue
-
-            # Category mapping
-            if 'camisole' in product_name:
-                c.execute('SELECT id FROM categories WHERE LOWER(name) = "camisole"')
-            elif 'briefs' in product_name or 'panty' in product_name:
-                c.execute('SELECT id FROM categories WHERE LOWER(name) = "panty"')
-            elif 'nighty' in product_name:
-                c.execute('SELECT id FROM categories WHERE LOWER(name) = "nighty"')
-            elif 'bra' in product_name:
-                c.execute('SELECT id FROM categories WHERE LOWER(name) = "bra"')
-            else:
-                c.execute('SELECT id FROM categories WHERE LOWER(name) = ?', (product_name,))
-            row = c.fetchone()
-            if not row:
-                errors.append(f"Category not found for product '{product_name}' (AWB {awb_number})")
-                continue
-            category_id = row[0]
-
-            # Size mapping
-            c.execute('SELECT id, name FROM sizes')
-            size_map = {}
-            for sid, name in c.fetchall():
-                parts = name.lower().replace('cm', '').split('|')
-                parts = [p.strip() for p in parts]
-                for part in parts:
-                    size_map[part] = sid
-            normalized_size = size.replace('cm', '').replace(' ', '')
-            size_id = size_map.get(normalized_size)
-            if not size_id:
-                errors.append(f"Size '{size}' not found for invoice {order_id} (AWB {awb_number})")
-                continue
-
-            # Supplier mapping
-            default_supplier = 'jtm' if 'camisole' in product_name else 'bhola'
-            use_supplier = supplier_name or default_supplier
-            c.execute('SELECT id FROM suppliers WHERE LOWER(name) = ?', (use_supplier,))
-            row = c.fetchone()
-            if not row:
-                errors.append(f"Supplier '{use_supplier}' not found for AWB {awb_number}")
-                continue
-            supplier_id = row[0]
-
-            # Purchase check
-            c.execute('''
-                SELECT p.id, p.quantity, COALESCE(SUM(rts.quantity), 0) as ready_qty
-                FROM purchases p
-                LEFT JOIN ready_to_sale rts ON rts.purchase_id = p.id
-                WHERE p.category_id = ? AND p.type_id = ? AND p.size_id = ? AND p.supplier_id = ?
-                GROUP BY p.id
-                HAVING p.quantity - ready_qty >= 1
-            ''', (category_id, type_id, size_id, supplier_id))
-            purchase = c.fetchone()
-
-            if not purchase:
-                # Create new purchase
-                print(f"🛒 Creating new purchase for AWB: {awb_number}")
-                purchase_id = str(uuid.uuid4())
-                quantity = 1
-                tax, carry_cost, extra_cost = 0.0, 0.0, 0.0
-                now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-                if 'camisole' in product_name:
-                    price = 4 * 30
-                elif 'panty' in product_name or 'briefs' in product_name:
-                    price = 5 * 23
-                else:
-                    price = 150
-
-                c.execute('''
-                    INSERT INTO purchases (id, category_id, type_id, size_id, supplier_id, quantity, price, tax, carry_cost, extra_cost, date)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (purchase_id, category_id, type_id, size_id, supplier_id, quantity, price, tax, carry_cost, extra_cost, now))
-            else:
-                purchase_id, _, _ = purchase
-
-            # Insert into ready_to_sale
-            ready_id = str(uuid.uuid4())
-            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            c.execute('''
-                INSERT INTO ready_to_sale (id, purchase_id, quantity, date)
-                VALUES (?, ?, ?, ?)
-            ''', (ready_id, purchase_id, 1, now))
-
-            # Insert into sales
-            sale_id = str(uuid.uuid4())
-            c.execute('''
-                INSERT INTO sales (id, ready_to_sale_id, quantity, date)
-                VALUES (?, ?, ?, ?)
-            ''', (sale_id, ready_id, 1, now))
-
-            # Log sale
-            c.execute('''
-                INSERT INTO sales_log (sale_id, awb_number, order_id, created_at)
-                VALUES (?, ?, ?, ?)
-            ''', (sale_id, awb_number, order_id, now))
-
-            # Update invoice_metadata
-            c.execute('''
-                INSERT INTO invoice_metadata (bill_id, meta_key, meta_value)
-                VALUES (?, ?, ?)
-            ''', (bill_id, 'sale_id', sale_id))
-
-            processed.append({
-                'bill_id': bill_id,
-                'awb_number': awb_number,
-                'order_id': order_id,
-                'sale_id': sale_id,
-                'category_id': category_id,
-                'type_id': type_id,
-                'size_id': size_id,
-                'supplier_id': supplier_id
-            })
-
-            print(f"✅ AWB {awb_number} processed successfully.")
-
-        conn.commit()
-
-    print("\n===== FINAL REPORT =====")
-    print(f"✅ Processed: {len(processed)}")
-    print(f"⚠️ Duplicates: {len(duplicates)}")
-    print(f"❌ Errors: {len(errors)}")
-    for e in errors:
-        print("Error:", e)
-
-    return jsonify({
-        'message': f'{len(processed)} invoices processed, {len(duplicates)} duplicates skipped.',
-        'processed': processed,
-        'duplicates': duplicates or None,
-        'errors': errors or None
-    })
 
 def hex_to_rgb(hex_color):
     hex_color = hex_color.lstrip("#")

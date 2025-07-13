@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
 
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -13,6 +14,8 @@
     <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Bootstrap JS (required for modal functionality) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
         body { padding: 20px; }
@@ -26,6 +29,7 @@
         .bg-white.p-6.rounded-lg.shadow-md { min-height: unset; }
         .fade {display:none !important;}
         .active{display:block !important;}
+        .show{display:block !important;}
         .marketing-form { max-width: 600px; margin: 0 auto; }
         .marketing-form .row { margin-bottom: 10px; display: flex; align-items: center; }
         .marketing-form label { width: 120px; }
@@ -143,10 +147,10 @@
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#ready_to_sale">Ready to Sale</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sale">Sale</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#return">Return</a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#returnManage">Return Manage</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#returnManage">Return To Sale-Ready</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#report">Report</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#Bill">Bills</a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#master_data">Master Data</a></li>
+        <!--<li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#master_data">Master Data</a></li>-->
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sku_mapping">SKU Mapping</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#setting">Setting</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#marketing">Marketing</a></li>
@@ -299,19 +303,19 @@
         <div class="bg-white p-6 rounded-lg shadow-md">
             <div class="mb-4">
                 <label class="block text-gray-700 mb-2" for="category">select category:</label>
-                <select id="category" class="border p-2 rounded w-full">
+                <select id="category" class="border p-2 rounded ">
                     <option value="">select category</option>
                 </select>
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700 mb-2" for="size">select size (optional):</label>
-                <select id="size" class="border p-2 rounded w-full">
+                <select id="size" class="border p-2 rounded">
                     <option value="">no size</option>
                 </select>
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700 mb-2" for="returnType">select return type (optional):</label>
-                <select id="returnType" class="border p-2 rounded w-full">
+                <select id="returnType" class="border p-2 rounded ">
                     <option value="">all return types</option>
                     <option value="rto">RTO</option>
                     <option value="customer">Customer</option>
@@ -643,7 +647,7 @@
                     <input type="file" id="folderInput" name="folder" webkitdirectory directory multiple class="border border-gray-300 p-2 rounded w-full" accept=".pdf">
                 </div>
                 <div class="mb-4">
-                    <button id="bulkUploadBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    <button id="bulkUploadBtn" class="btn btn-warning">
                         Upload and Process PDFs
                     </button>
                 </div>
@@ -699,6 +703,8 @@
                 </div>
 
                 <div id="result_Of_bills"></div>
+
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#saveToSaleModal">Save Bills to Sale</button>
 
                 <div >
                     
@@ -1149,591 +1155,513 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-document.getElementById('load-invoices').addEventListener('click', fetchSavedInvoices);
-document.addEventListener('DOMContentLoaded', () => {fetchInvoiceSummary();});
+    <!-- Modal -->
+<div class="modal fade" id="saveToSaleModal" tabindex="-1" aria-labelledby="saveToSaleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="saveToSaleModalLabel">Save Bills to Sale</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="invoiceType" class="form-label">Type</label>
+                    <select class="form-select" id="invoiceType">
+                        <option value="retail">Retail</option>
+                        <option value="wholesale">Wholesale</option>
+                        <option value="online">Online</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="supplier" class="form-label">Supplier</label>
+                    <select class="form-select" id="supplier">
+                        <option value="supplier1">Supplier 1</option>
+                        <option value="supplier2">Supplier 2</option>
+                        <option value="supplier3">Supplier 3</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveSaleBtnInvoiceTOSale">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-$(document).ready(function() {
-            // Load categories
-            $.get('/api/categories', function(data) {
-                $('#category').append(data.map(item => `<option value="${item.id}">${item.name}</option>`));
-            });
 
-            // Load sizes
-            $.get('/api/sizes', function(data) {
-                $('#size').append(data.map(item => `<option value="${item.id}">${item.name}</option>`));
-            });
+ <script>
+        document.getElementById('load-invoices').addEventListener('click', fetchSavedInvoices);
+        document.addEventListener('DOMContentLoaded', () => {fetchInvoiceSummary();});
 
-            // Adjust loss amount
-            $('#adjustBtn').click(function() {
-                const category_id = $('#category').val();
-                const size_id = $('#size').val() || null;
-                const return_type = $('#returnType').val() || null;
-                const loss_amount = $('#lossAmount').val();
-                const override = $('#override').is(':checked');
+        document.getElementById('saveSaleBtnInvoiceTOSale').addEventListener('click', async () => {
+            
 
-                if (!category_id) {
-                    $('#status').text('please select a category.');
-                    return;
-                }
-                if (!loss_amount || parseFloat(loss_amount) <= 0) {
-                    $('#status').text('please enter a valid loss amount greater than 0.');
-                    return;
-                }
 
-                $('#status').text('adjusting loss amount... please wait.');
-                $('#result').addClass('hidden');
+            /// invoice to sale start 
+            const rows = document.querySelectorAll('table tr');
+                const pdf_name  = document.getElementById('filename').value;
 
-                $.ajax({
-                    url: '/api/adjust_return_loss',
-                    method: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        category_id: category_id,
-                        size_id: size_id,
-                        return_type: return_type,
-                        loss_amount: loss_amount,
-                        override: override
-                    }),
-                    success: function(response) {
-                        $('#status').text('');
-                        $('#successMessage').text(response.message);
-                        $('#result').removeClass('hidden');
-                        $('#category, #size, #returnType, #lossAmount').val('');
-                        $('#override').prop('checked', false);
-                    },
-                    error: function(xhr) {
-                        $('#status').text('error: ' + (xhr.responseJSON?.error || 'failed to adjust loss amount'));
+                const selectedRows = [];
+                rows.forEach((row, idx) => {
+                    if (idx === 0) return;
+                    const checkbox = row.querySelector('.row-check');
+                    if (checkbox && checkbox.checked) {
+                        const inputs = row.querySelectorAll('input[type="text"]');
+                        const rowData = {};
+                        inputs.forEach(input => {
+                            rowData[input.name] = input.value;
+                        });
+                        selectedRows.push(rowData);
                     }
                 });
-            });
-        });
 
-$(document).ready(function() {
-            $('#uploadBtn').click(function() {
-                const file = $('#csvInput')[0].files[0];
-                if (!file) {
-                    $('#status').text('please select a csv file.');
+                //invoice to sale end
+                const invoiceData = {
+                type: document.getElementById('invoiceType').value,
+                supplier: document.getElementById('supplier').value,
+                selectedRows : selectedRows
+                };
+
+
+            try {
+                const response = await fetch('/api/invoices_to_sale', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(invoiceData)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    alert(error.message || 'Failed to save invoices to sale');
                     return;
                 }
 
-                $('#status').text('uploading and processing returns... please wait.');
-                $('#result').addClass('hidden');
-                $('#errorList').addClass('hidden');
-                $('#processedList').addClass('hidden');
-                $('#errors').empty();
-                $('#processedTable').empty();
+                alert('Invoices saved to sale successfully');
+                bootstrap.Modal.getInstance(document.getElementById('saveToSaleModal')).hide();
+            } catch (error) {
+                console.error('Error saving invoices:', error);
+                alert('Error saving invoices. Please try again.');
+            }
+        });
 
-                const formData = new FormData();
-                formData.append('file', file);
+        $(document).ready(function() {
+                    // Load categories
+                    $.get('/api/categories', function(data) {
+                        $('#category').append(data.map(item => `<option value="${item.id}">${item.name}</option>`));
+                    });
 
-                $.ajax({
-                    url: '/api/upload_returns_csv',
-                    method: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(response) {
-                        $('#status').text('');
-                        $('#successMessage').text(response.message);
-                        $('#result').removeClass('hidden');
-                        if (response.processed) {
-                            $('#processedList').removeClass('hidden');
-                            response.processed.forEach(item => {
-                                $('#processedTable').append(`
+                    // Load sizes
+                    $.get('/api/sizes', function(data) {
+                        $('#size').append(data.map(item => `<option value="${item.id}">${item.name}</option>`));
+                    });
+
+                    // Adjust loss amount
+                    $('#adjustBtn').click(function() {
+                        const category_id = $('#category').val();
+                        const size_id = $('#size').val() || null;
+                        const return_type = $('#returnType').val() || null;
+                        const loss_amount = $('#lossAmount').val();
+                        const override = $('#override').is(':checked');
+
+                        if (!category_id) {
+                            $('#status').text('please select a category.');
+                            return;
+                        }
+                        if (!loss_amount || parseFloat(loss_amount) <= 0) {
+                            $('#status').text('please enter a valid loss amount greater than 0.');
+                            return;
+                        }
+
+                        $('#status').text('adjusting loss amount... please wait.');
+                        $('#result').addClass('hidden');
+
+                        $.ajax({
+                            url: '/api/adjust_return_loss',
+                            method: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({
+                                category_id: category_id,
+                                size_id: size_id,
+                                return_type: return_type,
+                                loss_amount: loss_amount,
+                                override: override
+                            }),
+                            success: function(response) {
+                                $('#status').text('');
+                                $('#successMessage').text(response.message);
+                                $('#result').removeClass('hidden');
+                                $('#category, #size, #returnType, #lossAmount').val('');
+                                $('#override').prop('checked', false);
+                            },
+                            error: function(xhr) {
+                                $('#status').text('error: ' + (xhr.responseJSON?.error || 'failed to adjust loss amount'));
+                            }
+                        });
+                    });
+                });
+
+        $(document).ready(function() {
+                    $('#uploadBtn').click(function() {
+                        const file = $('#csvInput')[0].files[0];
+                        if (!file) {
+                            $('#status').text('please select a csv file.');
+                            return;
+                        }
+
+                        $('#status').text('uploading and processing returns... please wait.');
+                        $('#result').addClass('hidden');
+                        $('#errorList').addClass('hidden');
+                        $('#processedList').addClass('hidden');
+                        $('#errors').empty();
+                        $('#processedTable').empty();
+
+                        const formData = new FormData();
+                        formData.append('file', file);
+
+                        $.ajax({
+                            url: '/api/upload_returns_csv',
+                            method: 'POST',
+                            data: formData,
+                            processData: false,
+                            contentType: false,
+                            success: function(response) {
+                                $('#status').text('');
+                                $('#successMessage').text(response.message);
+                                $('#result').removeClass('hidden');
+                                if (response.processed) {
+                                    $('#processedList').removeClass('hidden');
+                                    response.processed.forEach(item => {
+                                        $('#processedTable').append(`
+                                            <tr>
+                                                <td class="border p-2">${item.order_id}</td>
+                                                <td class="border p-2">${item.category}</td>
+                                                <td class="border p-2">${item.size}</td>
+                                                <td class="border p-2">${item.supplier}</td>
+                                                <td class="border p-2">${item.type}</td>
+                                                <td class="border p-2">${item.return_type}</td>
+                                                <td class="border p-2">${item.return_reason}</td>
+                                                <td class="border p-2">${item.otp_verified_at}</td>
+                                                <td class="border p-2">${item.quantity}</td>
+                                            </tr>
+                                        `);
+                                    });
+                                }
+                                if (response.errors) {
+                                    $('#errorList').removeClass('hidden');
+                                    response.errors.forEach(error => {
+                                        $('#errors').append(`<li>${error}</li>`);
+                                    });
+                                }
+                            },
+                            error: function(xhr) {
+                                $('#status').text('error: ' + (xhr.responseJSON?.error || 'failed to process csv'));
+                            }
+                        });
+                    });
+                });
+
+
+
+        $(document).ready(function() {
+                    let currentData = {};
+
+                    // Load dropdowns
+                    $.get('/api/categories', function(data) {
+                        $('#category').append(data.map(item => `<option value="${item.id}">${item.name}</option>`));
+                    });
+                    $.get('/api/types', function(data) {
+                        $('#type').append(data.map(item => `<option value="${item.id}">${item.name}</option>`));
+                    });
+                    $.get('/api/sizes', function(data) {
+                        $('#size').append(data.map(item => `<option value="${item.id}">${item.name}</option>`));
+                    });
+                    $.get('/api/suppliers', function(data) {
+                        $('#supplier').append(data.map(item => `<option value="${item.id}">${item.name}</option>`));
+                    });
+
+                    // Load SKU mappings
+                    function loadTable() {
+                        $.get('/api/sku_mappings', function(data) {
+                            $('#skuTable').empty();
+                            data.forEach(item => {
+                                $('#skuTable').append(`
                                     <tr>
-                                        <td class="border p-2">${item.order_id}</td>
                                         <td class="border p-2">${item.category}</td>
+                                        <td class="border p-2">${item.type}</td>
                                         <td class="border p-2">${item.size}</td>
                                         <td class="border p-2">${item.supplier}</td>
-                                        <td class="border p-2">${item.type}</td>
-                                        <td class="border p-2">${item.return_type}</td>
-                                        <td class="border p-2">${item.return_reason}</td>
-                                        <td class="border p-2">${item.otp_verified_at}</td>
-                                        <td class="border p-2">${item.quantity}</td>
+                                        <td class="border p-2">${item.sku_name}</td>
+                                        <td class="border p-2">
+                                            <button class="editBtn bg-yellow-500 hover:bg-yellow-700 text-white py-1 px-2 rounded" data-id="${item.sku_id}">Edit</button>
+                                            <button class="deleteBtn bg-red-500 hover:bg-red-700 text-white py-1 px-2 rounded" data-id="${item.sku_id}">Delete</button>
+                                        </td>
                                     </tr>
                                 `);
                             });
-                        }
-                        if (response.errors) {
-                            $('#errorList').removeClass('hidden');
-                            response.errors.forEach(error => {
-                                $('#errors').append(`<li>${error}</li>`);
+                        });
+                    }
+                    loadTable();
+
+                    // Save SKU mapping
+                    $('#saveBtn').click(function() {
+                        const data = {
+                            category_id: $('#category').val(),
+                            type_id: $('#type').val(),
+                            size_id: $('#size').val(),
+                            supplier_id: $('#supplier').val(),
+                            sku_name: $('#sku_name').val(),
+                            sku_id: $('#sku_id').val(),
+                            confirm_duplicate: false
+                        };
+                        const url = data.sku_id ? '/api/sku_mappings' : '/api/sku_mappings';
+                        const method = data.sku_id ? 'PUT' : 'POST';
+
+                        $.ajax({
+                            url: url,
+                            method: method,
+                            contentType: 'application/json',
+                            data: JSON.stringify(data),
+                            success: function(response) {
+                                $('#sku_id, #sku_name, #category, #type, #size, #supplier').val('');
+                                loadTable();
+                                alert(response.message);
+                            },
+                            error: function(xhr) {
+                                if (xhr.status === 409) {
+                                    currentData = data;
+                                    currentData.confirm_duplicate = true;
+                                    const existing = xhr.responseJSON.existing;
+                                    $('#duplicateInfo').text(`Existing SKU(s) for this combination: ${existing.map(e => e.sku_name).join(', ')}`);
+                                    $('#duplicateModal').removeClass('hidden');
+                                } else {
+                                    alert('Error: ' + xhr.responseJSON.error);
+                                }
+                            }
+                        });
+                    });
+
+                    // Confirm duplicate
+                    $('#confirmDuplicate').click(function() {
+                        $.ajax({
+                            url: currentData.sku_id ? '/api/sku_mappings' : '/api/sku_mappings',
+                            method: currentData.sku_id ? 'PUT' : 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(currentData),
+                            success: function(response) {
+                                $('#duplicateModal').addClass('hidden');
+                                $('#sku_id, #sku_name, #category, #type, #size, #supplier').val('');
+                                loadTable();
+                                alert(response.message);
+                            },
+                            error: function(xhr) {
+                                alert('Error: ' + xhr.responseJSON.error);
+                            }
+                        });
+                    });
+
+                    // Cancel duplicate
+                    $('#cancelDuplicate').click(function() {
+                        $('#duplicateModal').addClass('hidden');
+                    });
+
+                    // Edit SKU mapping
+                    $(document).on('click', '.editBtn', function() {
+                        const sku_id = $(this).data('id');
+                        $.get('/api/sku_mappings', function(data) {
+                            const item = data.find(i => i.sku_id === sku_id);
+                            $('#category').val(data.find(c => c.name === item.category)?.id || '');
+                            $('#type').val(data.find(t => t.name === item.type)?.id || '');
+                            $('#size').val(data.find(s => s.name === item.size)?.id || '');
+                            $('#supplier').val(data.find(su => su.name === item.supplier)?.id || '');
+                            $('#sku_name').val(item.sku_name);
+                            $('#sku_id').val(item.sku_id);
+                        });
+                    });
+
+                    // Delete SKU mapping
+                    $(document).on('click', '.deleteBtn', function() {
+                        if (confirm('Are you sure you want to delete this SKU mapping?')) {
+                            $.ajax({
+                                url: '/api/sku_mappings',
+                                method: 'DELETE',
+                                contentType: 'application/json',
+                                data: JSON.stringify({ sku_id: $(this).data('id') }),
+                                success: function(response) {
+                                    loadTable();
+                                    alert(response.message);
+                                },
+                                error: function(xhr) {
+                                    alert('Error: ' + xhr.responseJSON.error);
+                                }
                             });
                         }
-                    },
-                    error: function(xhr) {
-                        $('#status').text('error: ' + (xhr.responseJSON?.error || 'failed to process csv'));
-                    }
-                });
-            });
-        });
-
-
-
- $(document).ready(function() {
-            let currentData = {};
-
-            // Load dropdowns
-            $.get('/api/categories', function(data) {
-                $('#category').append(data.map(item => `<option value="${item.id}">${item.name}</option>`));
-            });
-            $.get('/api/types', function(data) {
-                $('#type').append(data.map(item => `<option value="${item.id}">${item.name}</option>`));
-            });
-            $.get('/api/sizes', function(data) {
-                $('#size').append(data.map(item => `<option value="${item.id}">${item.name}</option>`));
-            });
-            $.get('/api/suppliers', function(data) {
-                $('#supplier').append(data.map(item => `<option value="${item.id}">${item.name}</option>`));
-            });
-
-            // Load SKU mappings
-            function loadTable() {
-                $.get('/api/sku_mappings', function(data) {
-                    $('#skuTable').empty();
-                    data.forEach(item => {
-                        $('#skuTable').append(`
-                            <tr>
-                                <td class="border p-2">${item.category}</td>
-                                <td class="border p-2">${item.type}</td>
-                                <td class="border p-2">${item.size}</td>
-                                <td class="border p-2">${item.supplier}</td>
-                                <td class="border p-2">${item.sku_name}</td>
-                                <td class="border p-2">
-                                    <button class="editBtn bg-yellow-500 hover:bg-yellow-700 text-white py-1 px-2 rounded" data-id="${item.sku_id}">Edit</button>
-                                    <button class="deleteBtn bg-red-500 hover:bg-red-700 text-white py-1 px-2 rounded" data-id="${item.sku_id}">Delete</button>
-                                </td>
-                            </tr>
-                        `);
                     });
                 });
-            }
-            loadTable();
 
-            // Save SKU mapping
-            $('#saveBtn').click(function() {
-                const data = {
-                    category_id: $('#category').val(),
-                    type_id: $('#type').val(),
-                    size_id: $('#size').val(),
-                    supplier_id: $('#supplier').val(),
-                    sku_name: $('#sku_name').val(),
-                    sku_id: $('#sku_id').val(),
-                    confirm_duplicate: false
-                };
-                const url = data.sku_id ? '/api/sku_mappings' : '/api/sku_mappings';
-                const method = data.sku_id ? 'PUT' : 'POST';
-
-                $.ajax({
-                    url: url,
-                    method: method,
-                    contentType: 'application/json',
-                    data: JSON.stringify(data),
-                    success: function(response) {
-                        $('#sku_id, #sku_name, #category, #type, #size, #supplier').val('');
-                        loadTable();
-                        alert(response.message);
-                    },
-                    error: function(xhr) {
-                        if (xhr.status === 409) {
-                            currentData = data;
-                            currentData.confirm_duplicate = true;
-                            const existing = xhr.responseJSON.existing;
-                            $('#duplicateInfo').text(`Existing SKU(s) for this combination: ${existing.map(e => e.sku_name).join(', ')}`);
-                            $('#duplicateModal').removeClass('hidden');
-                        } else {
-                            alert('Error: ' + xhr.responseJSON.error);
-                        }
-                    }
-                });
-            });
-
-            // Confirm duplicate
-            $('#confirmDuplicate').click(function() {
-                $.ajax({
-                    url: currentData.sku_id ? '/api/sku_mappings' : '/api/sku_mappings',
-                    method: currentData.sku_id ? 'PUT' : 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(currentData),
-                    success: function(response) {
-                        $('#duplicateModal').addClass('hidden');
-                        $('#sku_id, #sku_name, #category, #type, #size, #supplier').val('');
-                        loadTable();
-                        alert(response.message);
-                    },
-                    error: function(xhr) {
-                        alert('Error: ' + xhr.responseJSON.error);
-                    }
-                });
-            });
-
-            // Cancel duplicate
-            $('#cancelDuplicate').click(function() {
-                $('#duplicateModal').addClass('hidden');
-            });
-
-            // Edit SKU mapping
-            $(document).on('click', '.editBtn', function() {
-                const sku_id = $(this).data('id');
-                $.get('/api/sku_mappings', function(data) {
-                    const item = data.find(i => i.sku_id === sku_id);
-                    $('#category').val(data.find(c => c.name === item.category)?.id || '');
-                    $('#type').val(data.find(t => t.name === item.type)?.id || '');
-                    $('#size').val(data.find(s => s.name === item.size)?.id || '');
-                    $('#supplier').val(data.find(su => su.name === item.supplier)?.id || '');
-                    $('#sku_name').val(item.sku_name);
-                    $('#sku_id').val(item.sku_id);
-                });
-            });
-
-            // Delete SKU mapping
-            $(document).on('click', '.deleteBtn', function() {
-                if (confirm('Are you sure you want to delete this SKU mapping?')) {
+        $(document).ready(function() {
                     $.ajax({
-                        url: '/api/sku_mappings',
-                        method: 'DELETE',
-                        contentType: 'application/json',
-                        data: JSON.stringify({ sku_id: $(this).data('id') }),
-                        success: function(response) {
-                            loadTable();
-                            alert(response.message);
+                        url: '/api/invoices/list',
+                        method: 'GET',
+                        success: function(data) {
+                            // Process data for charts
+                            const dateCounts = {};
+                            const returnCounts = {};
+                            data.forEach(item => {
+                                const date = item.invoice_date || 'Unknown';
+                                if (date !== 'NA' && date !== 'Unknown') {
+                                    dateCounts[date] = (dateCounts[date] || 0) + 1;
+                                    if (item.return_status === 'yes') {
+                                        returnCounts[date] = (returnCounts[date] || 0) + 1;
+                                    } else {
+                                        returnCounts[date] = returnCounts[date] || 0;
+                                    }
+                                }
+                            });
+
+                            // Prepare data for charts
+                            const dates = Object.keys(dateCounts).sort();
+                            const billData = dates.map(date => dateCounts[date] || 0);
+                            const returnData = dates.map(date => returnCounts[date] || 0);
+
+                            /*// Line Chart
+                            const lineCtx = document.getElementById('lineChart').getContext('2d');
+                            new Chart(lineCtx, {
+                                type: 'line',
+                                data: {
+                                    labels: dates,
+                                    datasets: [{
+                                        label: 'Number of Bills',
+                                        data: billData,
+                                        borderColor: 'rgba(75, 192, 192, 1)',
+                                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                        fill: true,
+                                        tension: 0.4
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    scales: {
+                                        x: { title: { display: true, text: 'Invoice Date' } },
+                                        y: { title: { display: true, text: 'Number of Bills' }, beginAtZero: true }
+                                    }
+                                }
+                            });*/
+
+                            // Bar Chart
+                            const barCtx = document.getElementById('barChart').getContext('2d');
+                            new Chart(barCtx, {
+                                type: 'bar',
+                                data: {
+                                    labels: dates,
+                                    datasets: [
+                                        {
+                                            label: 'Number of Bills',
+                                            data: billData,
+                                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                                            borderColor: 'rgba(54, 162, 235, 1)',
+                                            borderWidth: 1
+                                        },
+                                        {
+                                            label: 'Number of Returns',
+                                            data: returnData,
+                                            backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                                            borderColor: 'rgba(255, 99, 132, 1)',
+                                            borderWidth: 1
+                                        }
+                                    ]
+                                },
+                                options: {
+                                    responsive: true,
+                                    scales: {
+                                        x: { title: { display: true, text: 'Invoice Date' } },
+                                        y: { title: { display: true, text: 'Count' }, beginAtZero: true }
+                                    }
+                                }
+                            });
                         },
                         error: function(xhr) {
-                            alert('Error: ' + xhr.responseJSON.error);
+                            console.error('Error fetching data:', xhr.responseJSON?.error || 'Unknown error');
                         }
                     });
-                }
-            });
-        });
+                });
 
-$(document).ready(function() {
-            $.ajax({
-                url: '/api/invoices/list',
-                method: 'GET',
-                success: function(data) {
-                    // Process data for charts
-                    const dateCounts = {};
-                    const returnCounts = {};
-                    data.forEach(item => {
-                        const date = item.invoice_date || 'Unknown';
-                        if (date !== 'NA' && date !== 'Unknown') {
-                            dateCounts[date] = (dateCounts[date] || 0) + 1;
-                            if (item.return_status === 'yes') {
-                                returnCounts[date] = (returnCounts[date] || 0) + 1;
-                            } else {
-                                returnCounts[date] = returnCounts[date] || 0;
+        $(document).ready(function() {
+                    $('#bulkUploadBtn').click(function() {
+                        const files = $('#folderInput')[0].files;
+                        if (files.length === 0) {
+                            $('#status').text('Please select a folder with PDFs.');
+                            return;
+                        }
+
+                        $('#status').text('Uploading and processing PDFs... Please wait.');
+                        $('#result').addClass('hidden');
+                        $('#resultTable_Of_Upload').empty();
+
+                        const formData = new FormData();
+                        for (const file of files) {
+                            if (file.name.toLowerCase().endsWith('.pdf')) {
+                                formData.append('folder', file, file.webkitRelativePath || file.name);
                             }
                         }
-                    });
 
-                    // Prepare data for charts
-                    const dates = Object.keys(dateCounts).sort();
-                    const billData = dates.map(date => dateCounts[date] || 0);
-                    const returnData = dates.map(date => returnCounts[date] || 0);
-
-                    /*// Line Chart
-                    const lineCtx = document.getElementById('lineChart').getContext('2d');
-                    new Chart(lineCtx, {
-                        type: 'line',
-                        data: {
-                            labels: dates,
-                            datasets: [{
-                                label: 'Number of Bills',
-                                data: billData,
-                                borderColor: 'rgba(75, 192, 192, 1)',
-                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                                fill: true,
-                                tension: 0.4
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            scales: {
-                                x: { title: { display: true, text: 'Invoice Date' } },
-                                y: { title: { display: true, text: 'Number of Bills' }, beginAtZero: true }
-                            }
-                        }
-                    });*/
-
-                    // Bar Chart
-                    const barCtx = document.getElementById('barChart').getContext('2d');
-                    new Chart(barCtx, {
-                        type: 'bar',
-                        data: {
-                            labels: dates,
-                            datasets: [
-                                {
-                                    label: 'Number of Bills',
-                                    data: billData,
-                                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                                    borderColor: 'rgba(54, 162, 235, 1)',
-                                    borderWidth: 1
-                                },
-                                {
-                                    label: 'Number of Returns',
-                                    data: returnData,
-                                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
-                                    borderColor: 'rgba(255, 99, 132, 1)',
-                                    borderWidth: 1
+                        $.ajax({
+                            url: '/api/bulk_upload_folder',
+                            method: 'POST',
+                            data: formData,
+                            processData: false,
+                            contentType: false,
+                            success: function(response) {
+                                $('#status').text(response.message);
+                                if (response.data && response.data.length > 0) {
+                                    response.data.forEach(function(item) {
+                                        $('#resultTable_Of_Upload').append(`
+                                            <tr>
+                                                <td class="border border-gray-300 p-2">${item['Invoice No'] || 'NA'}</td>
+                                                <td class="border border-gray-300 p-2">${item['pdf_name'] || 'NA'}</td>
+                                                <td class="border border-gray-300 p-2">${item['AWB Number'] || 'NA'}</td>
+                                                <td class="border border-gray-300 p-2">${item['Order ID'] || 'NA'}</td>
+                                                <td class="border border-gray-300 p-2">${item['Invoice Date'] || 'NA'}</td>
+                                                <td class="border border-gray-300 p-2">${item['Customer Name'] || 'NA'}</td>
+                                            </tr>
+                                        `);
+                                    });
+                                    $('#downloadLink').attr('href', response.excel_path);
+                                    $('#result').removeClass('hidden');
+                                } else {
+                                    $('#status').text('No new invoices processed (possible duplicates or no valid PDFs).');
                                 }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            scales: {
-                                x: { title: { display: true, text: 'Invoice Date' } },
-                                y: { title: { display: true, text: 'Count' }, beginAtZero: true }
+                            },
+                            error: function(xhr) {
+                                $('#status').text('Error: ' + (xhr.responseJSON?.error || 'Failed to process PDFs'));
                             }
-                        }
+                        });
                     });
-                },
-                error: function(xhr) {
-                    console.error('Error fetching data:', xhr.responseJSON?.error || 'Unknown error');
-                }
-            });
-        });
+                });
 
-$(document).ready(function() {
-            $('#bulkUploadBtn').click(function() {
-                const files = $('#folderInput')[0].files;
-                if (files.length === 0) {
-                    $('#status').text('Please select a folder with PDFs.');
-                    return;
-                }
-
-                $('#status').text('Uploading and processing PDFs... Please wait.');
-                $('#result').addClass('hidden');
-                $('#resultTable_Of_Upload').empty();
-
-                const formData = new FormData();
-                for (const file of files) {
-                    if (file.name.toLowerCase().endsWith('.pdf')) {
-                        formData.append('folder', file, file.webkitRelativePath || file.name);
-                    }
-                }
-
-                $.ajax({
-                    url: '/api/bulk_upload_folder',
+        // bills js start
+        async function postData(endpoint, data) {
+            try {
+                const response = await fetch(endpoint, {
                     method: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(response) {
-                        $('#status').text(response.message);
-                        if (response.data && response.data.length > 0) {
-                            response.data.forEach(function(item) {
-                                $('#resultTable_Of_Upload').append(`
-                                    <tr>
-                                        <td class="border border-gray-300 p-2">${item['Invoice No'] || 'NA'}</td>
-                                        <td class="border border-gray-300 p-2">${item['pdf_name'] || 'NA'}</td>
-                                        <td class="border border-gray-300 p-2">${item['AWB Number'] || 'NA'}</td>
-                                        <td class="border border-gray-300 p-2">${item['Order ID'] || 'NA'}</td>
-                                        <td class="border border-gray-300 p-2">${item['Invoice Date'] || 'NA'}</td>
-                                        <td class="border border-gray-300 p-2">${item['Customer Name'] || 'NA'}</td>
-                                    </tr>
-                                `);
-                            });
-                            $('#downloadLink').attr('href', response.excel_path);
-                            $('#result').removeClass('hidden');
-                        } else {
-                            $('#status').text('No new invoices processed (possible duplicates or no valid PDFs).');
-                        }
-                    },
-                    error: function(xhr) {
-                        $('#status').text('Error: ' + (xhr.responseJSON?.error || 'Failed to process PDFs'));
-                    }
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
                 });
-            });
-        });
-
-// bills js start
-async function postData(endpoint, data) {
-    try {
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return await response.json();
-    } catch (error) {
-        console.error(`Post ${endpoint}:`, error);
-        alert(`Error saving: ${error.message}`);
-        return { message: "Failed" };
-    }
-}
-
-async function fetchData(endpoint) {
-    try {
-        const response = await fetch(`/api/${endpoint}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return await response.json();
-    } catch (error) {
-        console.error(`Fetch ${endpoint}:`, error);
-        document.getElementById('report_error').textContent = `Error loading ${endpoint}: ${error.message}`;
-        return [];
-    }
-}
-
-document.getElementById('upload-form').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    const response = await fetch('/upload', { method: 'POST', body: formData });
-    const result = await response.json();
-
-    const data = result.data;
-    const uploadedFiles = result.uploaded_files;
-    if (uploadedFiles.length) document.getElementById('filename').value = uploadedFiles[0];
-
-    if (!data.length) {
-        document.getElementById('result').innerText = 'No data extracted.';
-        return;
-    }
-
-    renderEditableTable(data);
-});
-
-function renderEditableTable(data) {
-    const keys = Object.keys(data[0]);
-    const table = document.createElement('table');
-    const headerRow = document.createElement('tr');
-
-    // --- Create Select All checkbox and bind properly ---
-    const selectAllTh = document.createElement('th');
-    const selectAll = document.createElement('input');
-    selectAll.type = 'checkbox';
-    selectAll.id = 'select-all';
-    selectAll.addEventListener('change', () => {
-        document.querySelectorAll('.row-check').forEach(cb => cb.checked = selectAll.checked);
-    });
-    selectAllTh.appendChild(selectAll);
-    headerRow.appendChild(selectAllTh);
-
-    // --- Add header for each column ---
-    keys.forEach(k => {
-        const th = document.createElement('th');
-        th.innerText = k;
-        headerRow.appendChild(th);
-    });
-
-    // --- Add a column for the Save button ---
-    const saveHeader = document.createElement('th');
-    saveHeader.innerText = 'Save';
-    headerRow.appendChild(saveHeader);
-
-    table.appendChild(headerRow);
-
-    // --- Create rows ---
-    data.forEach((row, index) => {
-        const tr = document.createElement('tr');
-
-        // Checkbox per row
-        const checkboxTd = document.createElement('td');
-        checkboxTd.innerHTML = `<input type="checkbox" class="row-check">`;
-        tr.appendChild(checkboxTd);
-
-        // Inputs per column
-        keys.forEach(k => {
-            const td = document.createElement('td');
-            td.innerHTML = `<input type="text" name="${k}" value="${row[k] || ''}">`;
-            tr.appendChild(td);
-        });
-
-        // Individual Save button
-        const saveTd = document.createElement('td');
-        const btn = document.createElement('button');
-        btn.innerText = 'Save';
-        btn.onclick = async () => {
-            const inputs = tr.querySelectorAll('input[type="text"]');
-            const rowData = {};
-            inputs.forEach(input => {
-                rowData[input.name] = input.value;
-            });
-            const res = await postData('/save_selected/savexls', { rows: [rowData] });
-            alert(res.message);
-        };
-        saveTd.appendChild(btn);
-        tr.appendChild(saveTd);
-
-        table.appendChild(tr);
-    });
-
-    // Render the result
-    const resultDiv = document.getElementById('result_Of_bills');
-    resultDiv.innerHTML = '';
-    resultDiv.appendChild(table);
-
-    // Save selected rows button
-    const saveAllBtn = document.createElement('button');
-    saveAllBtn.innerText = '💾 Save Selected Rows';
-    saveAllBtn.id = 'save-selected';
-    resultDiv.appendChild(saveAllBtn);
-
-    // Download Excel link
-    const downloadLink = document.createElement('a');
-    downloadLink.href = '/download';
-    downloadLink.innerText = '📥 Download Excel';
-    downloadLink.style.display = 'inline-block';
-    downloadLink.style.marginTop = '10px';
-    resultDiv.appendChild(downloadLink);
-}
-
-
-document.addEventListener('click', async function (e) {
-    if (e.target && e.target.id === 'save-selected') {
-        const selectedRows = [];
-        const rows = document.querySelectorAll('table tr');
-        const pdf_name  = document.getElementById('filename').value;
-
-
-        rows.forEach((row, idx) => {
-            if (idx === 0) return;
-            const checkbox = row.querySelector('.row-check');
-            if (checkbox && checkbox.checked) {
-                const inputs = row.querySelectorAll('input[type="text"]');
-                const rowData = {};
-                inputs.forEach(input => {
-                    rowData[input.name] = input.value;
-                });
-                selectedRows.push(rowData);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error(`Post ${endpoint}:`, error);
+                alert(`Error saving: ${error.message}`);
+                return { message: "Failed" };
             }
-        });
-
-        if (!selectedRows.length) return alert('No rows selected!');
-        const res = await postData('/save_selected/savexls', { rows: selectedRows, pdf_name: pdf_name });
-        alert(res.message);
-    }
-});
-
-// Handle template dropdown
-document.getElementById('template').addEventListener('change', () => {
-    const t = document.getElementById('template').value;
-    const w = document.getElementById('width'), h = document.getElementById('height');
-    if (t === 'Amazon') { w.value = 10; h.value = 15; }
-    else if (t === 'Meesho') { w.value = 8; h.value = 16; }
-});
-
-function previewResizedPDF() {
-    const file = document.getElementById('filename').value.trim();
-    const width = document.getElementById('width').value;
-    const height = document.getElementById('height').value;
-    if (!file) return alert('Enter filename.');
-    window.open(`/resize/${file}?width=${width}&height=${height}&preview=true`, '_blank');
-}
-
-
-// bills js end
-
-
+        }
 
         async function fetchData(endpoint) {
             try {
-                const response = await fetch(`/api/${endpoint}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+                const response = await fetch(`/api/${endpoint}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 return await response.json();
             } catch (error) {
@@ -1743,1169 +1671,1332 @@ function previewResizedPDF() {
             }
         }
 
-        async function postData(endpoint, data) {
-            try {
-                const response = await fetch(`/api/${endpoint}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error || 'Request failed');
-                return result;
-            } catch (error) {
-                console.error(`Post ${endpoint}:`, error);
-                alert(error.message);
-                throw error;
-            }
-        }
+        document.getElementById('upload-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const response = await fetch('/upload', { method: 'POST', body: formData });
+            const result = await response.json();
 
-        async function putData(endpoint, data) {
-            try {
-                const response = await fetch(`/api/${endpoint}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error || 'Request failed');
-                return result;
-            } catch (error) {
-                console.error(`Put ${endpoint}:`, error);
-                alert(error.message);
-                throw error;
-            }
-        }
+            const data = result.data;
+            const uploadedFiles = result.uploaded_files;
+            if (uploadedFiles.length) document.getElementById('filename').value = uploadedFiles[0];
 
-        async function deleteData(endpoint, data) {
-            try {
-                const response = await fetch(`/api/${endpoint}`, {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error || 'Request failed');
-                return result;
-            } catch (error) {
-                console.error(`Delete ${endpoint}:`, error);
-                alert(error.message);
-                throw error;
-            }
-        }
-
-        async function populateDropdown(id, endpoint, includeEmpty = true) {
-            const select = document.getElementById(id);
-            const data = await fetchData(endpoint);
-            select.innerHTML = includeEmpty ? `<option value="">Select ${endpoint.replace('_', ' ')}</option>` : '<option value="">All</option>';
-            data.forEach(item => {
-                const option = document.createElement('option');
-                option.value = item.id;
-                option.textContent = endpoint === 'inventory_summary' ? 
-                    `${item.category} - ${item.type} - ${item.size} - ${item.supplier} (Stock: ${item.warehouse_stock})` :
-                    endpoint === 'ready_to_sale' ? 
-                    `${item.category} - ${item.type} - ${item.size} - ${item.supplier} (Stock: ${item.quantity})` : 
-                    item.name;
-                select.appendChild(option);
-            });
-        }
-        /*
-        async function loadMasterData(table) {
-            const data = await fetchData(table);
-            const tbody = document.getElementById(`${table.slice(0, -1)}_list`);
-            tbody.innerHTML = '';
-            data.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${item.name}</td>
-                    <td>
-                        <button class="btn btn-sm btn-warning" onclick="editMaster('${table}', '${item.id}', '${item.name}')">Edit</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteMaster('${table}', '${item.id}')">Delete</button>
-                    </td>`;
-                tbody.appendChild(row);
-            });
-            await Promise.all([
-                populateDropdown(`${table.slice(0, -1)}_keep`, table),
-                populateDropdown(`${table.slice(0, -1)}_merge`, table),
-                populateDropdown(`purchase_${table.slice(0, -1)}`, table),
-                populateDropdown(`return_${table.slice(0, -1)}`, table),
-                populateDropdown(`edit_purchase_${table.slice(0, -1)}`, table),
-                populateDropdown(`edit_return_${table.slice(0, -1)}`, table),
-                populateDropdown(`report_${table.slice(0, -1)}`, table, false)
-            ]);
-        }
-        */
-
-        async function addNew(table, selectId, inputId) {
-            const name = document.getElementById(inputId).value.trim();
-            if (!name) return;
-            await postData(table, { name });
-            document.getElementById(inputId).value = '';
-            await Promise.all([
-                populateDropdown(selectId, table),
-                //loadMasterData(table),
-                loadPurchases(),
-                loadReadyToSale(),
-                loadSales(),
-                loadReturns(),
-                loadReport()
-            ]);
-        }
-
-        async function editMaster(table, id, name) {
-            const newName = prompt(`Edit ${table.slice(0, -1)} name:`, name);
-            if (!newName) return;
-            await putData(table, { id, name: newName });
-            await Promise.all([
-                //loadMasterData(table),
-                loadPurchases(),
-                loadReadyToSale(),
-                loadSales(),
-                loadReturns(),
-                loadReport()
-            ]);
-        }
-
-        async function deleteMaster(table, id) {
-            if (!confirm(`Delete ${table.slice(0, -1)}?`)) return;
-            await deleteData(table, { id });
-            await Promise.all([
-                //loadMasterData(table),
-                loadPurchases(),
-                loadReadyToSale(),
-                loadSales(),
-                loadReturns(),
-                loadReport()
-            ]);
-        }
-
-        async function merge(table, keepId, mergeId) {
-            const keep = document.getElementById(keepId).value;
-            const merge = document.getElementById(mergeId).value;
-            if (!keep || !merge || keep === merge) return alert('Select different items to merge');
-            if (!confirm(`Merge ${table.slice(0, -1)}?`)) return;
-            await postData(`${table}/merge`, { keep_id: keep, merge_id: merge });
-            await Promise.all([
-                //loadMasterData(table),
-                loadPurchases(),
-                loadReadyToSale(),
-                loadSales(),
-                loadReturns(),
-                loadReport()
-            ]);
-        }
-
-        async function loadPurchases() {
-            const purchases = await fetchData('purchases');
-            const summary = await fetchData('inventory_summary');
-            const tbody = document.getElementById('purchase_list');
-            tbody.innerHTML = '';
-            let totalCost = 0, totalEntries = 0;
-            purchases.forEach(p => {
-                totalEntries++;
-                totalCost += (p.price || 0) + (p.tax || 0) + (p.carry_cost || 0) + (p.extra_cost || 0);
-                const sum = summary.find(s => s.category === p.category && s.type === p.type && 
-                                            s.size === p.size && s.supplier === p.supplier);
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${p.category}</td><td>${p.type}</td><td>${p.size}</td><td>${p.supplier}</td>
-                    <td>${p.quantity}</td><td>${p.ready_quantity}</td><td>${p.sold_quantity}</td><td>${(p.price || 0).toFixed(2)}</td><td>${(p.tax || 0).toFixed(2)}</td>
-                    <td>${(p.carry_cost || 0).toFixed(2)}</td><td>${(p.extra_cost || 0).toFixed(2)}</td><td>${p.date}</td>
-                    <td>
-                        <input type="number" id="qty_${p.id}" class="form-control d-inline-block w-auto" placeholder="Qty" min="1" max="${sum?.warehouse_stock || 0}">
-                        <button class="btn btn-sm btn-primary" onclick="moveToReady('${p.id}')">To Ready</button>
-                        <button class="btn btn-sm btn-success" onclick="moveToSale('${p.id}')">To Sale</button>
-                        <button class="btn btn-sm btn-warning" onclick="editPurchase('${p.id}')">Edit</button>
-                        <button class="btn btn-sm btn-danger" onclick="deletePurchase('${p.id}')">Delete</button>
-                    </td>`;
-                tbody.appendChild(row);
-            });
-
-            
-            $('#purchase_list_table').DataTable().destroy(); // Destroy previous instance
-            $('#purchase_list_table').DataTable();           // Re-initialize
-
-
-            document.getElementById('total_cost').textContent = totalCost.toFixed(2);
-            document.getElementById('total_entries').textContent = totalEntries;
-            await populateDropdown('ready_purchase_id', 'inventory_summary');
-        }
-
-        async function editPurchase(id) {
-            const purchases = await fetchData('purchases');
-            const p = purchases.find(p => p.id === id);
-            if (!p) return;
-            const modal = new bootstrap.Modal(document.getElementById('editPurchaseModal'));
-            document.getElementById('edit_purchase_id').value = id;
-            document.getElementById('edit_purchase_quantity').value = p.quantity;
-            document.getElementById('edit_purchase_price').value = p.price || '';
-            document.getElementById('edit_purchase_tax').value = p.tax || '';
-            document.getElementById('edit_purchase_carry_cost').value = p.carry_cost || '';
-            document.getElementById('edit_purchase_extra_cost').value = p.extra_cost || '';
-            await Promise.all([
-                populateDropdown('edit_purchase_category', 'categories'),
-                populateDropdown('edit_purchase_type', 'types'),
-                populateDropdown('edit_purchase_size', 'sizes'),
-                populateDropdown('edit_purchase_supplier', 'suppliers')
-            ]);
-            const [categories, types, sizes, suppliers] = await Promise.all([
-                fetchData('categories'), fetchData('types'), fetchData('sizes'), fetchData('suppliers')
-            ]);
-            document.getElementById('edit_purchase_category').value = categories.find(c => c.name === p.category)?.id || '';
-            document.getElementById('edit_purchase_type').value = types.find(t => t.name === p.type)?.id || '';
-            document.getElementById('edit_purchase_size').value = sizes.find(s => s.name === p.size)?.id || '';
-            document.getElementById('edit_purchase_supplier').value = suppliers.find(s => s.name === p.supplier)?.id || '';
-            modal.show();
-        }
-
-        async function savePurchase() {
-            const data = {
-                id: document.getElementById('edit_purchase_id').value,
-                category_id: document.getElementById('edit_purchase_category').value,
-                type_id: document.getElementById('edit_purchase_type').value,
-                size_id: document.getElementById('edit_purchase_size').value,
-                supplier_id: document.getElementById('edit_purchase_supplier').value,
-                quantity: parseInt(document.getElementById('edit_purchase_quantity').value),
-                price: parseFloat(document.getElementById('edit_purchase_price').value) || 0,
-                tax: parseFloat(document.getElementById('edit_purchase_tax').value) || 0,
-                carry_cost: parseFloat(document.getElementById('edit_purchase_carry_cost').value) || 0,
-                extra_cost: parseFloat(document.getElementById('edit_purchase_extra_cost').value) || 0
-            };
-            await putData('purchases', data);
-            bootstrap.Modal.getInstance(document.getElementById('editPurchaseModal')).hide();
-            await refreshAll();
-        }
-
-        async function deletePurchase(id) {
-            if (!confirm('Delete purchase?')) return;
-            await deleteData('purchases', { id });
-            await refreshAll();
-        }
-
-        async function moveToReady(purchaseId) {
-            const quantity = parseInt(document.getElementById(`qty_${purchaseId}`).value);
-            if (!quantity || quantity < 1) return alert('Enter valid quantity');
-            await postData('ready_to_sale', { purchase_id: purchaseId, quantity });
-            document.getElementById(`qty_${purchaseId}`).value = '';
-            await refreshAll();
-        }
-
-        async function moveToSale(purchaseId) {
-            const quantity = parseInt(document.getElementById(`qty_${purchaseId}`).value);
-            if (!quantity || quantity < 1) return alert('Enter valid quantity');
-            const readyResponse = await postData('ready_to_sale', { purchase_id: purchaseId, quantity });
-            if (readyResponse.message) {
-                const readyItems = await fetchData('ready_to_sale');
-                const readyItem = readyItems.find(item => item.purchase_id === purchaseId && item.quantity === quantity);
-                if (readyItem) {
-                    await postData('sales', { ready_to_sale_id: readyItem.id, quantity });
-                }
-            }
-            document.getElementById(`qty_${purchaseId}`).value = '';
-            await refreshAll();
-        }
-
-async function loadReadyToSale() {
-    const items = await fetchData('ready_to_sale_summary');
-    const tbody = document.getElementById('ready_to_sale_list');
-    tbody.innerHTML = '';
-
-    let totalEntries = 0, tempInventory = 0, readyStock = 0;
-
-    for (const item of items) {
-        totalEntries++;
-        readyStock += item.ready_quantity;
-        tempInventory += item.remain_to_be_sold;
-
-        if (item.remain_to_be_sold != 0) {
-        const row = document.createElement('tr');
-        
-        row.innerHTML = `
-            <td>${item.category}</td><td>${item.type}</td><td>${item.size}</td><td>${item.supplier}</td>
-            <td>${item.ready_quantity}</td><td>${item.already_sold}</td><td>${item.remain_to_be_sold}</td>
-            <td>${item.date}</td>
-            <td>
-                <input type="number" id="sale_qty_${item.id}" class="form-control d-inline-block w-auto" placeholder="Qty" min="1" max="${item.remain_to_be_sold}">
-                <button class="btn btn-sm btn-success" onclick="moveToSaleFromReady('${item.id}')">To Sale</button>
-                <button class="btn btn-sm btn-warning" onclick="editReady('${item.id}')">Edit</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteReady('${item.id}')">Delete</button>
-            </td>`;
-        tbody.appendChild(row);
-        }
-    }
-
-    
-        $('#ready_to_sale_table').DataTable().destroy(); // Destroy previous instance
-        $('#ready_to_sale_table').DataTable();  
-
-    document.getElementById('ready_total_entries').textContent = totalEntries;
-    document.getElementById('temp_inventory').textContent = tempInventory;
-    document.getElementById('ready_inventory').textContent = readyStock;
-}
-
-
-
- async function editReady(id) {
-            const items = await fetchData('ready_to_sale');
-            const item = items.find(i => i.id === id);
-            if (!item) return;
-            const modal = new bootstrap.Modal(document.getElementById('editReadyModal'));
-            document.getElementById('edit_ready_id').value = id;
-            document.getElementById('edit_ready_quantity').value = item.quantity;
-            modal.show();
-        }
-
-        async function saveReady() {
-            const data = {
-                id: document.getElementById('edit_ready_id').value,
-                quantity: parseInt(document.getElementById('edit_ready_quantity').value)
-            };
-            await putData('ready_to_sale', data);
-            bootstrap.Modal.getInstance(document.getElementById('editReadyModal')).hide();
-            await refreshAll();
-        }
-
-        async function deleteReady(id) {
-            if (!confirm('Delete ready to sale?')) return;
-            await deleteData('ready_to_sale', { id });
-            await refreshAll();
-        }
-
-        async function moveToSaleFromReady(readyId) {
-            const quantity = parseInt(document.getElementById(`sale_qty_${readyId}`).value);
-            if (!quantity || quantity < 1) return alert('Enter valid quantity');
-            await postData('sales', { ready_to_sale_id: readyId, quantity });
-            document.getElementById(`sale_qty_${readyId}`).value = '';
-            await refreshAll();
-        }
-
-        async function loadSales() {
-            const sales = await fetchData('sales');
-            const tbody = document.getElementById('sale_list');
-            tbody.innerHTML = '';
-            document.getElementById('sale_total_entries').textContent = sales.length;
-            sales.forEach(s => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${s.category}</td><td>${s.type}</td><td>${s.size}</td><td>${s.supplier}</td>
-                    <td>${s.quantity}</td><td>${s.date}</td>
-                    <td>
-                        <button class="btn btn-sm btn-warning" onclick="editSale('${s.id}')">Edit</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteSale('${s.id}')">Delete</button>
-                    </td>`;
-                tbody.appendChild(row);
-            });
-
-            const summary = await fetchData('sales_sku_summary');
-            const skuTable = document.getElementById('sales_sku_summary_list');
-            skuTable.innerHTML = '';
-
-            summary.forEach(s => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${s.category}</td><td>${s.type}</td><td>${s.size}</td><td>${s.supplier}</td><td>${s.total_sold}</td>
-                `;
-                skuTable.appendChild(row);
-            });
-
-            $('#sale_list_table').DataTable().destroy();
-            $('#sale_list_table').DataTable();
-
-            $('#sales_sku_summary_table').DataTable().destroy();
-            $('#sales_sku_summary_table').DataTable();
-
-        }
-
-        async function editSale(id) {
-            const sales = await fetchData('sales');
-            const s = sales.find(s => s.id === id);
-            if (!s) return;
-            const modal = new bootstrap.Modal(document.getElementById('editSaleModal'));
-            document.getElementById('edit_sale_id').value = id;
-            document.getElementById('edit_sale_quantity').value = s.quantity;
-            modal.show();
-        }
-
-        async function saveSale() {
-            const data = {
-                id: document.getElementById('edit_sale_id').value,
-                quantity: parseInt(document.getElementById('edit_sale_quantity').value)
-            };
-            await putData('sales', data);
-            bootstrap.Modal.getInstance(document.getElementById('editSaleModal')).hide();
-            await refreshAll();
-        }
-
-        async function deleteSale(id) {
-            if (!confirm('Delete sale?')) return;
-            await deleteData('sales', { id });
-            await refreshAll();
-        }
-
-        async function loadReturns() {
-            const returns = await fetchData('returns');
-            const tbody = document.getElementById('return_list');
-            tbody.innerHTML = '';
-            let totalEntries = 0, totalLoss = 0;
-            returns.forEach(r => {
-                totalEntries++;
-                totalLoss += r.loss_amount || 0;
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${r.category}</td><td>${r.type}</td><td>${r.size}</td><td>${r.supplier}</td>
-                    <td>${r.return_type}</td><td>${r.quantity}</td><td>${r.add_to_stock ? 'YES' : 'NO'}</td>
-                    <td>${(r.loss_amount || 0).toFixed(2)}</td><td>${r.date}</td>
-                    <td>
-                        <button class="btn btn-sm btn-warning" onclick="editReturn('${r.id}')">Edit</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteReturn('${r.id}')">Delete</button>
-                    </td>`;
-                tbody.appendChild(row);
-            });
-            document.getElementById('return_total_entries').textContent = totalEntries;
-            document.getElementById('return_total_loss').textContent = totalLoss.toFixed(2);
-        }
-
-        async function editReturn(id) {
-            const returns = await fetchData('returns');
-            const r = returns.find(r => r.id === id);
-            if (!r) return;
-            const modal = new bootstrap.Modal(document.getElementById('editReturnModal'));
-            document.getElementById('edit_return_id').value = id;
-            document.getElementById('edit_return_quantity').value = r.quantity;
-            document.getElementById('edit_return_type_select').value = r.return_type;
-            document.getElementById('edit_return_add_to_stock').value = r.add_to_stock;
-            document.getElementById('edit_return_loss_amount').value = r.loss_amount || '';
-            await Promise.all([
-                populateDropdown('edit_return_category', 'categories'),
-                populateDropdown('edit_return_type', 'types'),
-                populateDropdown('edit_return_size', 'sizes'),
-                populateDropdown('edit_return_supplier', 'suppliers')
-            ]);
-            const [categories, types, sizes, suppliers] = await Promise.all([
-                fetchData('categories'), fetchData('types'), fetchData('sizes'), fetchData('suppliers')
-            ]);
-            document.getElementById('edit_return_category').value = categories.find(c => c.name === r.category)?.id || '';
-            document.getElementById('edit_return_type').value = types.find(t => t.name === r.type)?.id || '';
-            document.getElementById('edit_return_size').value = sizes.find(s => s.name === r.size)?.id || '';
-            document.getElementById('edit_return_supplier').value = suppliers.find(s => s.name === r.supplier)?.id || '';
-            modal.show();
-        }
-
-        async function saveReturn() {
-            const data = {
-                id: document.getElementById('edit_return_id').value,
-                category_id: document.getElementById('edit_return_category').value,
-                type_id: document.getElementById('edit_return_type').value,
-                size_id: document.getElementById('edit_return_size').value,
-                supplier_id: document.getElementById('edit_return_supplier').value,
-                return_type: document.getElementById('edit_return_type_select').value,
-                quantity: parseInt(document.getElementById('edit_return_quantity').value),
-                add_to_stock: parseInt(document.getElementById('edit_return_add_to_stock').value),
-                loss_amount: parseFloat(document.getElementById('edit_return_loss_amount').value) || 0
-            };
-            await putData('returns', data);
-            bootstrap.Modal.getInstance(document.getElementById('editReturnModal')).hide();
-            await refreshAll();
-        }
-
-        async function deleteReturn(id) {
-            if (!confirm('Delete return?')) return;
-            await deleteData('returns', { id });
-            await refreshAll();
-        }
-
-        async function loadReport() {
-            const report = await fetchData('report');
-            const tbody = document.getElementById('report_list');
-            const errorDiv = document.getElementById('report_error');
-            tbody.innerHTML = '';
-            errorDiv.textContent = '';
-            const filters = {
-                category: document.getElementById('report_category').value,
-                type: document.getElementById('report_type').value,
-                size: document.getElementById('report_size').value,
-                supplier: document.getElementById('report_supplier').value
-            };
-            const filtered = report.filter(r => 
-                (!filters.category || r.category === document.getElementById('report_category').options[document.getElementById('report_category').selectedIndex].text) &&
-                (!filters.type || r.type === document.getElementById('report_type').options[document.getElementById('report_type').selectedIndex].text) &&
-                (!filters.size || r.size === document.getElementById('report_size').options[document.getElementById('report_size').selectedIndex].text) &&
-                (!filters.supplier || r.supplier === document.getElementById('report_supplier').options[document.getElementById('report_supplier').selectedIndex].text)
-            );
-            if (!filtered.length) {
-                errorDiv.textContent = 'No data available';
+            if (!data.length) {
+                document.getElementById('result').innerText = 'No data extracted.';
                 return;
             }
-            filtered.forEach(r => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${r.category}</td><td>${r.type}</td><td>${r.size}</td><td>${r.supplier}</td>
-                    <td>${r.total_purchase}</td><td>${r.total_return}</td><td>${r.total_ready}</td>
-                    <td>${r.total_sale}</td><td>${r.added_stock}</td><td>${r.actual_inventory}</td>
-                    <td>${r.temporary_inventory}</td><td>${r.warehouse_stock}</td>`;
-                tbody.appendChild(row);
+
+            renderEditableTable(data);
+        });
+
+        function renderEditableTable(data) {
+            const keys = Object.keys(data[0]);
+            const table = document.createElement('table');
+            const headerRow = document.createElement('tr');
+
+            // --- Create Select All checkbox and bind properly ---
+            const selectAllTh = document.createElement('th');
+            const selectAll = document.createElement('input');
+            selectAll.type = 'checkbox';
+            selectAll.id = 'select-all';
+            selectAll.addEventListener('change', () => {
+                document.querySelectorAll('.row-check').forEach(cb => cb.checked = selectAll.checked);
             });
+            selectAllTh.appendChild(selectAll);
+            headerRow.appendChild(selectAllTh);
+
+            // --- Add header for each column ---
+            keys.forEach(k => {
+                const th = document.createElement('th');
+                th.innerText = k;
+                headerRow.appendChild(th);
+            });
+
+            // --- Add a column for the Save button ---
+            const saveHeader = document.createElement('th');
+            saveHeader.innerText = 'Save';
+            headerRow.appendChild(saveHeader);
+
+            table.appendChild(headerRow);
+
+            // --- Create rows ---
+            data.forEach((row, index) => {
+                const tr = document.createElement('tr');
+
+                // Checkbox per row
+                const checkboxTd = document.createElement('td');
+                checkboxTd.innerHTML = `<input type="checkbox" class="row-check">`;
+                tr.appendChild(checkboxTd);
+
+                // Inputs per column
+                keys.forEach(k => {
+                    const td = document.createElement('td');
+                    td.innerHTML = `<input type="text" name="${k}" value="${row[k] || ''}">`;
+                    tr.appendChild(td);
+                });
+
+                // Individual Save button
+                const saveTd = document.createElement('td');
+                const btn = document.createElement('button');
+                btn.innerText = 'Save';
+                btn.onclick = async () => {
+                    const inputs = tr.querySelectorAll('input[type="text"]');
+                    const rowData = {};
+                    inputs.forEach(input => {
+                        rowData[input.name] = input.value;
+                    });
+                    const res = await postData('/save_selected/savexls', { rows: [rowData] });
+                    alert(res.message);
+                };
+                saveTd.appendChild(btn);
+                tr.appendChild(saveTd);
+
+                table.appendChild(tr);
+            });
+
+            // Render the result
+            const resultDiv = document.getElementById('result_Of_bills');
+            resultDiv.innerHTML = '';
+            resultDiv.appendChild(table);
+
+            // Save selected rows button
+            const saveAllBtn = document.createElement('button');
+            saveAllBtn.innerText = '💾 Save Selected Rows';
+            saveAllBtn.id = 'save-selected';
+            resultDiv.appendChild(saveAllBtn);
+
+            // Download Excel link
+            const downloadLink = document.createElement('a');
+            downloadLink.href = '/download';
+            downloadLink.innerText = '📥 Download Excel';
+            downloadLink.style.display = 'inline-block';
+            downloadLink.style.marginTop = '10px';
+            resultDiv.appendChild(downloadLink);
         }
 
-        async function loadCategories() {
-                const categories = await fetchData('categories');
-                const tbody = document.getElementById('category_list');
-                tbody.innerHTML = '';
-                document.getElementById('category_total_entries').textContent = categories.length;
 
-                categories.forEach(cat => {
+        document.addEventListener('click', async function (e) {
+            if (e.target && e.target.id === 'save-selected') {
+                const selectedRows = [];
+                const rows = document.querySelectorAll('table tr');
+                const pdf_name  = document.getElementById('filename').value;
+
+
+                rows.forEach((row, idx) => {
+                    if (idx === 0) return;
+                    const checkbox = row.querySelector('.row-check');
+                    if (checkbox && checkbox.checked) {
+                        const inputs = row.querySelectorAll('input[type="text"]');
+                        const rowData = {};
+                        inputs.forEach(input => {
+                            rowData[input.name] = input.value;
+                        });
+                        selectedRows.push(rowData);
+                    }
+                });
+
+                if (!selectedRows.length) return alert('No rows selected!');
+                const res = await postData('/save_selected/savexls', { rows: selectedRows, pdf_name: pdf_name });
+                alert(res.message);
+            }
+        });
+
+        // Handle template dropdown
+        document.getElementById('template').addEventListener('change', () => {
+            const t = document.getElementById('template').value;
+            const w = document.getElementById('width'), h = document.getElementById('height');
+            if (t === 'Amazon') { w.value = 10; h.value = 15; }
+            else if (t === 'Meesho') { w.value = 8; h.value = 16; }
+        });
+
+        function previewResizedPDF() {
+            const file = document.getElementById('filename').value.trim();
+            const width = document.getElementById('width').value;
+            const height = document.getElementById('height').value;
+            if (!file) return alert('Enter filename.');
+            window.open(`/resize/${file}?width=${width}&height=${height}&preview=true`, '_blank');
+        }
+
+
+        // bills js end
+
+
+
+                async function fetchData(endpoint) {
+                    try {
+                        const response = await fetch(`/api/${endpoint}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        return await response.json();
+                    } catch (error) {
+                        console.error(`Fetch ${endpoint}:`, error);
+                        document.getElementById('report_error').textContent = `Error loading ${endpoint}: ${error.message}`;
+                        return [];
+                    }
+                }
+
+                async function postData(endpoint, data) {
+                    try {
+                        const response = await fetch(`/api/${endpoint}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(data)
+                        });
+                        const result = await response.json();
+                        if (!response.ok) throw new Error(result.error || 'Request failed');
+                        return result;
+                    } catch (error) {
+                        console.error(`Post ${endpoint}:`, error);
+                        alert(error.message);
+                        throw error;
+                    }
+                }
+
+                async function putData(endpoint, data) {
+                    try {
+                        const response = await fetch(`/api/${endpoint}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(data)
+                        });
+                        const result = await response.json();
+                        if (!response.ok) throw new Error(result.error || 'Request failed');
+                        return result;
+                    } catch (error) {
+                        console.error(`Put ${endpoint}:`, error);
+                        alert(error.message);
+                        throw error;
+                    }
+                }
+
+                async function deleteData(endpoint, data) {
+                    try {
+                        const response = await fetch(`/api/${endpoint}`, {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(data)
+                        });
+                        const result = await response.json();
+                        if (!response.ok) throw new Error(result.error || 'Request failed');
+                        return result;
+                    } catch (error) {
+                        console.error(`Delete ${endpoint}:`, error);
+                        alert(error.message);
+                        throw error;
+                    }
+                }
+
+                async function populateDropdown(id, endpoint, includeEmpty = true) {
+                    const select = document.getElementById(id);
+                    const data = await fetchData(endpoint);
+                    select.innerHTML = includeEmpty ? `<option value="">Select ${endpoint.replace('_', ' ')}</option>` : '<option value="">All</option>';
+                    data.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = endpoint === 'inventory_summary' ? 
+                            `${item.category} - ${item.type} - ${item.size} - ${item.supplier} (Stock: ${item.warehouse_stock})` :
+                            endpoint === 'ready_to_sale' ? 
+                            `${item.category} - ${item.type} - ${item.size} - ${item.supplier} (Stock: ${item.quantity})` : 
+                            item.name;
+                        select.appendChild(option);
+                    });
+                }
+                /*
+                async function loadMasterData(table) {
+                    const data = await fetchData(table);
+                    const tbody = document.getElementById(`${table.slice(0, -1)}_list`);
+                    tbody.innerHTML = '';
+                    data.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${item.name}</td>
+                            <td>
+                                <button class="btn btn-sm btn-warning" onclick="editMaster('${table}', '${item.id}', '${item.name}')">Edit</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteMaster('${table}', '${item.id}')">Delete</button>
+                            </td>`;
+                        tbody.appendChild(row);
+                    });
+                    await Promise.all([
+                        populateDropdown(`${table.slice(0, -1)}_keep`, table),
+                        populateDropdown(`${table.slice(0, -1)}_merge`, table),
+                        populateDropdown(`purchase_${table.slice(0, -1)}`, table),
+                        populateDropdown(`return_${table.slice(0, -1)}`, table),
+                        populateDropdown(`edit_purchase_${table.slice(0, -1)}`, table),
+                        populateDropdown(`edit_return_${table.slice(0, -1)}`, table),
+                        populateDropdown(`report_${table.slice(0, -1)}`, table, false)
+                    ]);
+                }
+                */
+
+                async function addNew(table, selectId, inputId) {
+                    const name = document.getElementById(inputId).value.trim();
+                    if (!name) return;
+                    await postData(table, { name });
+                    document.getElementById(inputId).value = '';
+                    await Promise.all([
+                        populateDropdown(selectId, table),
+                        //loadMasterData(table),
+                        loadPurchases(),
+                        loadReadyToSale(),
+                        loadSales(),
+                        loadReturns(),
+                        loadReport()
+                    ]);
+                }
+
+                async function editMaster(table, id, name) {
+                    const newName = prompt(`Edit ${table.slice(0, -1)} name:`, name);
+                    if (!newName) return;
+                    await putData(table, { id, name: newName });
+                    await Promise.all([
+                        //loadMasterData(table),
+                        loadPurchases(),
+                        loadReadyToSale(),
+                        loadSales(),
+                        loadReturns(),
+                        loadReport()
+                    ]);
+                }
+
+                async function deleteMaster(table, id) {
+                    if (!confirm(`Delete ${table.slice(0, -1)}?`)) return;
+                    await deleteData(table, { id });
+                    await Promise.all([
+                        //loadMasterData(table),
+                        loadPurchases(),
+                        loadReadyToSale(),
+                        loadSales(),
+                        loadReturns(),
+                        loadReport()
+                    ]);
+                }
+
+                async function merge(table, keepId, mergeId) {
+                    const keep = document.getElementById(keepId).value;
+                    const merge = document.getElementById(mergeId).value;
+                    if (!keep || !merge || keep === merge) return alert('Select different items to merge');
+                    if (!confirm(`Merge ${table.slice(0, -1)}?`)) return;
+                    await postData(`${table}/merge`, { keep_id: keep, merge_id: merge });
+                    await Promise.all([
+                        //loadMasterData(table),
+                        loadPurchases(),
+                        loadReadyToSale(),
+                        loadSales(),
+                        loadReturns(),
+                        loadReport()
+                    ]);
+                }
+
+                async function loadPurchases() {
+                    const purchases = await fetchData('purchases');
+                    const summary = await fetchData('inventory_summary');
+                    const tbody = document.getElementById('purchase_list');
+                    tbody.innerHTML = '';
+                    let totalCost = 0, totalEntries = 0;
+                    purchases.forEach(p => {
+                        totalEntries++;
+                        totalCost += (p.price || 0) + (p.tax || 0) + (p.carry_cost || 0) + (p.extra_cost || 0);
+                        const sum = summary.find(s => s.category === p.category && s.type === p.type && 
+                                                    s.size === p.size && s.supplier === p.supplier);
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${p.category}</td><td>${p.type}</td><td>${p.size}</td><td>${p.supplier}</td>
+                            <td>${p.quantity}</td><td>${p.ready_quantity}</td><td>${p.sold_quantity}</td><td>${(p.price || 0).toFixed(2)}</td><td>${(p.tax || 0).toFixed(2)}</td>
+                            <td>${(p.carry_cost || 0).toFixed(2)}</td><td>${(p.extra_cost || 0).toFixed(2)}</td><td>${p.date}</td>
+                            <td>
+                                <input type="number" id="qty_${p.id}" class="form-control d-inline-block w-auto" placeholder="Qty" min="1" max="${sum?.warehouse_stock || 0}">
+                                <button class="btn btn-sm btn-primary" onclick="moveToReady('${p.id}')">To Ready</button>
+                                <button class="btn btn-sm btn-success" onclick="moveToSale('${p.id}')">To Sale</button>
+                                <button class="btn btn-sm btn-warning" onclick="editPurchase('${p.id}')">Edit</button>
+                                <button class="btn btn-sm btn-danger" onclick="deletePurchase('${p.id}')">Delete</button>
+                            </td>`;
+                        tbody.appendChild(row);
+                    });
+
+                    
+                    $('#purchase_list_table').DataTable().destroy(); // Destroy previous instance
+                    $('#purchase_list_table').DataTable();           // Re-initialize
+
+
+                    document.getElementById('total_cost').textContent = totalCost.toFixed(2);
+                    document.getElementById('total_entries').textContent = totalEntries;
+                    await populateDropdown('ready_purchase_id', 'inventory_summary');
+                }
+
+                async function editPurchase(id) {
+                    const purchases = await fetchData('purchases');
+                    const p = purchases.find(p => p.id === id);
+                    if (!p) return;
+                    const modal = new bootstrap.Modal(document.getElementById('editPurchaseModal'));
+                    document.getElementById('edit_purchase_id').value = id;
+                    document.getElementById('edit_purchase_quantity').value = p.quantity;
+                    document.getElementById('edit_purchase_price').value = p.price || '';
+                    document.getElementById('edit_purchase_tax').value = p.tax || '';
+                    document.getElementById('edit_purchase_carry_cost').value = p.carry_cost || '';
+                    document.getElementById('edit_purchase_extra_cost').value = p.extra_cost || '';
+                    await Promise.all([
+                        populateDropdown('edit_purchase_category', 'categories'),
+                        populateDropdown('edit_purchase_type', 'types'),
+                        populateDropdown('edit_purchase_size', 'sizes'),
+                        populateDropdown('edit_purchase_supplier', 'suppliers')
+                    ]);
+                    const [categories, types, sizes, suppliers] = await Promise.all([
+                        fetchData('categories'), fetchData('types'), fetchData('sizes'), fetchData('suppliers')
+                    ]);
+                    document.getElementById('edit_purchase_category').value = categories.find(c => c.name === p.category)?.id || '';
+                    document.getElementById('edit_purchase_type').value = types.find(t => t.name === p.type)?.id || '';
+                    document.getElementById('edit_purchase_size').value = sizes.find(s => s.name === p.size)?.id || '';
+                    document.getElementById('edit_purchase_supplier').value = suppliers.find(s => s.name === p.supplier)?.id || '';
+                    modal.show();
+                }
+
+                async function savePurchase() {
+                    const data = {
+                        id: document.getElementById('edit_purchase_id').value,
+                        category_id: document.getElementById('edit_purchase_category').value,
+                        type_id: document.getElementById('edit_purchase_type').value,
+                        size_id: document.getElementById('edit_purchase_size').value,
+                        supplier_id: document.getElementById('edit_purchase_supplier').value,
+                        quantity: parseInt(document.getElementById('edit_purchase_quantity').value),
+                        price: parseFloat(document.getElementById('edit_purchase_price').value) || 0,
+                        tax: parseFloat(document.getElementById('edit_purchase_tax').value) || 0,
+                        carry_cost: parseFloat(document.getElementById('edit_purchase_carry_cost').value) || 0,
+                        extra_cost: parseFloat(document.getElementById('edit_purchase_extra_cost').value) || 0
+                    };
+                    await putData('purchases', data);
+                    bootstrap.Modal.getInstance(document.getElementById('editPurchaseModal')).hide();
+                    await refreshAll();
+                }
+
+                async function deletePurchase(id) {
+                    if (!confirm('Delete purchase?')) return;
+                    await deleteData('purchases', { id });
+                    await refreshAll();
+                }
+
+                async function moveToReady(purchaseId) {
+                    const quantity = parseInt(document.getElementById(`qty_${purchaseId}`).value);
+                    if (!quantity || quantity < 1) return alert('Enter valid quantity');
+                    await postData('ready_to_sale', { purchase_id: purchaseId, quantity });
+                    document.getElementById(`qty_${purchaseId}`).value = '';
+                    await refreshAll();
+                }
+
+                async function moveToSale(purchaseId) {
+                    const quantity = parseInt(document.getElementById(`qty_${purchaseId}`).value);
+                    if (!quantity || quantity < 1) return alert('Enter valid quantity');
+                    const readyResponse = await postData('ready_to_sale', { purchase_id: purchaseId, quantity });
+                    if (readyResponse.message) {
+                        const readyItems = await fetchData('ready_to_sale');
+                        const readyItem = readyItems.find(item => item.purchase_id === purchaseId && item.quantity === quantity);
+                        if (readyItem) {
+                            await postData('sales', { ready_to_sale_id: readyItem.id, quantity });
+                        }
+                    }
+                    document.getElementById(`qty_${purchaseId}`).value = '';
+                    await refreshAll();
+                }
+
+        async function loadReadyToSale() {
+            const items = await fetchData('ready_to_sale_summary');
+            const tbody = document.getElementById('ready_to_sale_list');
+            tbody.innerHTML = '';
+
+            let totalEntries = 0, tempInventory = 0, readyStock = 0;
+
+            for (const item of items) {
+                totalEntries++;
+                readyStock += item.ready_quantity;
+                tempInventory += item.remain_to_be_sold;
+
+                if (item.remain_to_be_sold != 0) {
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td>${item.category}</td><td>${item.type}</td><td>${item.size}</td><td>${item.supplier}</td>
+                    <td>${item.ready_quantity}</td><td>${item.already_sold}</td><td>${item.remain_to_be_sold}</td>
+                    <td>${item.date}</td>
+                    <td>
+                        <input type="number" id="sale_qty_${item.id}" class="form-control d-inline-block w-auto" placeholder="Qty" min="1" max="${item.remain_to_be_sold}">
+                        <button class="btn btn-sm btn-success" onclick="moveToSaleFromReady('${item.id}')">To Sale</button>
+                        <button class="btn btn-sm btn-warning" onclick="editReady('${item.id}')">Edit</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteReady('${item.id}')">Delete</button>
+                    </td>`;
+                tbody.appendChild(row);
+                }
+            }
+
+            
+                $('#ready_to_sale_table').DataTable().destroy(); // Destroy previous instance
+                $('#ready_to_sale_table').DataTable();  
+
+            document.getElementById('ready_total_entries').textContent = totalEntries;
+            document.getElementById('temp_inventory').textContent = tempInventory;
+            document.getElementById('ready_inventory').textContent = readyStock;
+        }
+
+
+
+        async function editReady(id) {
+                    const items = await fetchData('ready_to_sale');
+                    const item = items.find(i => i.id === id);
+                    if (!item) return;
+                    const modal = new bootstrap.Modal(document.getElementById('editReadyModal'));
+                    document.getElementById('edit_ready_id').value = id;
+                    document.getElementById('edit_ready_quantity').value = item.quantity;
+                    modal.show();
+                }
+
+                async function saveReady() {
+                    const data = {
+                        id: document.getElementById('edit_ready_id').value,
+                        quantity: parseInt(document.getElementById('edit_ready_quantity').value)
+                    };
+                    await putData('ready_to_sale', data);
+                    bootstrap.Modal.getInstance(document.getElementById('editReadyModal')).hide();
+                    await refreshAll();
+                }
+
+                async function deleteReady(id) {
+                    if (!confirm('Delete ready to sale?')) return;
+                    await deleteData('ready_to_sale', { id });
+                    await refreshAll();
+                }
+
+                async function moveToSaleFromReady(readyId) {
+                    const quantity = parseInt(document.getElementById(`sale_qty_${readyId}`).value);
+                    if (!quantity || quantity < 1) return alert('Enter valid quantity');
+                    await postData('sales', { ready_to_sale_id: readyId, quantity });
+                    document.getElementById(`sale_qty_${readyId}`).value = '';
+                    await refreshAll();
+                }
+
+                async function loadSales() {
+                    const sales = await fetchData('sales');
+                    const tbody = document.getElementById('sale_list');
+                    tbody.innerHTML = '';
+                    document.getElementById('sale_total_entries').textContent = sales.length;
+                    sales.forEach(s => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${s.category}</td><td>${s.type}</td><td>${s.size}</td><td>${s.supplier}</td>
+                            <td>${s.quantity}</td><td>${s.date}</td>
+                            <td>
+                                <button class="btn btn-sm btn-warning" onclick="editSale('${s.id}')">Edit</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteSale('${s.id}')">Delete</button>
+                            </td>`;
+                        tbody.appendChild(row);
+                    });
+
+                    const summary = await fetchData('sales_sku_summary');
+                    const skuTable = document.getElementById('sales_sku_summary_list');
+                    skuTable.innerHTML = '';
+
+                    summary.forEach(s => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${s.category}</td><td>${s.type}</td><td>${s.size}</td><td>${s.supplier}</td><td>${s.total_sold}</td>
+                        `;
+                        skuTable.appendChild(row);
+                    });
+
+                    $('#sale_list_table').DataTable().destroy();
+                    $('#sale_list_table').DataTable();
+
+                    $('#sales_sku_summary_table').DataTable().destroy();
+                    $('#sales_sku_summary_table').DataTable();
+
+                }
+
+                async function editSale(id) {
+                    const sales = await fetchData('sales');
+                    const s = sales.find(s => s.id === id);
+                    if (!s) return;
+                    const modal = new bootstrap.Modal(document.getElementById('editSaleModal'));
+                    document.getElementById('edit_sale_id').value = id;
+                    document.getElementById('edit_sale_quantity').value = s.quantity;
+                    modal.show();
+                }
+
+                async function saveSale() {
+                    const data = {
+                        id: document.getElementById('edit_sale_id').value,
+                        quantity: parseInt(document.getElementById('edit_sale_quantity').value)
+                    };
+                    await putData('sales', data);
+                    bootstrap.Modal.getInstance(document.getElementById('editSaleModal')).hide();
+                    await refreshAll();
+                }
+
+                async function deleteSale(id) {
+                    if (!confirm('Delete sale?')) return;
+                    await deleteData('sales', { id });
+                    await refreshAll();
+                }
+
+                async function loadReturns() {
+                    const returns = await fetchData('returns');
+                    const tbody = document.getElementById('return_list');
+                    tbody.innerHTML = '';
+                    let totalEntries = 0, totalLoss = 0;
+                    returns.forEach(r => {
+                        totalEntries++;
+                        totalLoss += r.loss_amount || 0;
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${r.category}</td><td>${r.type}</td><td>${r.size}</td><td>${r.supplier}</td>
+                            <td>${r.return_type}</td><td>${r.quantity}</td><td>${r.add_to_stock ? 'YES' : 'NO'}</td>
+                            <td>${(r.loss_amount || 0).toFixed(2)}</td><td>${r.date}</td>
+                            <td>
+                                <button class="btn btn-sm btn-warning" onclick="editReturn('${r.id}')">Edit</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteReturn('${r.id}')">Delete</button>
+                            </td>`;
+                        tbody.appendChild(row);
+                    });
+                    document.getElementById('return_total_entries').textContent = totalEntries;
+                    document.getElementById('return_total_loss').textContent = totalLoss.toFixed(2);
+                }
+
+                async function editReturn(id) {
+                    const returns = await fetchData('returns');
+                    const r = returns.find(r => r.id === id);
+                    if (!r) return;
+                    const modal = new bootstrap.Modal(document.getElementById('editReturnModal'));
+                    document.getElementById('edit_return_id').value = id;
+                    document.getElementById('edit_return_quantity').value = r.quantity;
+                    document.getElementById('edit_return_type_select').value = r.return_type;
+                    document.getElementById('edit_return_add_to_stock').value = r.add_to_stock;
+                    document.getElementById('edit_return_loss_amount').value = r.loss_amount || '';
+                    await Promise.all([
+                        populateDropdown('edit_return_category', 'categories'),
+                        populateDropdown('edit_return_type', 'types'),
+                        populateDropdown('edit_return_size', 'sizes'),
+                        populateDropdown('edit_return_supplier', 'suppliers')
+                    ]);
+                    const [categories, types, sizes, suppliers] = await Promise.all([
+                        fetchData('categories'), fetchData('types'), fetchData('sizes'), fetchData('suppliers')
+                    ]);
+                    document.getElementById('edit_return_category').value = categories.find(c => c.name === r.category)?.id || '';
+                    document.getElementById('edit_return_type').value = types.find(t => t.name === r.type)?.id || '';
+                    document.getElementById('edit_return_size').value = sizes.find(s => s.name === r.size)?.id || '';
+                    document.getElementById('edit_return_supplier').value = suppliers.find(s => s.name === r.supplier)?.id || '';
+                    modal.show();
+                }
+
+                async function saveReturn() {
+                    const data = {
+                        id: document.getElementById('edit_return_id').value,
+                        category_id: document.getElementById('edit_return_category').value,
+                        type_id: document.getElementById('edit_return_type').value,
+                        size_id: document.getElementById('edit_return_size').value,
+                        supplier_id: document.getElementById('edit_return_supplier').value,
+                        return_type: document.getElementById('edit_return_type_select').value,
+                        quantity: parseInt(document.getElementById('edit_return_quantity').value),
+                        add_to_stock: parseInt(document.getElementById('edit_return_add_to_stock').value),
+                        loss_amount: parseFloat(document.getElementById('edit_return_loss_amount').value) || 0
+                    };
+                    await putData('returns', data);
+                    bootstrap.Modal.getInstance(document.getElementById('editReturnModal')).hide();
+                    await refreshAll();
+                }
+
+                async function deleteReturn(id) {
+                    if (!confirm('Delete return?')) return;
+                    await deleteData('returns', { id });
+                    await refreshAll();
+                }
+
+                async function loadReport() {
+                    const report = await fetchData('report');
+                    const tbody = document.getElementById('report_list');
+                    const errorDiv = document.getElementById('report_error');
+                    tbody.innerHTML = '';
+                    errorDiv.textContent = '';
+                    const filters = {
+                        category: document.getElementById('report_category').value,
+                        type: document.getElementById('report_type').value,
+                        size: document.getElementById('report_size').value,
+                        supplier: document.getElementById('report_supplier').value
+                    };
+                    const filtered = report.filter(r => 
+                        (!filters.category || r.category === document.getElementById('report_category').options[document.getElementById('report_category').selectedIndex].text) &&
+                        (!filters.type || r.type === document.getElementById('report_type').options[document.getElementById('report_type').selectedIndex].text) &&
+                        (!filters.size || r.size === document.getElementById('report_size').options[document.getElementById('report_size').selectedIndex].text) &&
+                        (!filters.supplier || r.supplier === document.getElementById('report_supplier').options[document.getElementById('report_supplier').selectedIndex].text)
+                    );
+                    if (!filtered.length) {
+                        errorDiv.textContent = 'No data available';
+                        return;
+                    }
+                    filtered.forEach(r => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${r.category}</td><td>${r.type}</td><td>${r.size}</td><td>${r.supplier}</td>
+                            <td>${r.total_purchase}</td><td>${r.total_return}</td><td>${r.total_ready}</td>
+                            <td>${r.total_sale}</td><td>${r.added_stock}</td><td>${r.actual_inventory}</td>
+                            <td>${r.temporary_inventory}</td><td>${r.warehouse_stock}</td>`;
+                        tbody.appendChild(row);
+                    });
+                }
+
+                async function loadCategories() {
+                        const categories = await fetchData('categories');
+                        const tbody = document.getElementById('category_list');
+                        tbody.innerHTML = '';
+                        document.getElementById('category_total_entries').textContent = categories.length;
+
+                        categories.forEach(cat => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${cat.name}</td>
+                                <td>${cat.active ? 'Active' : 'Inactive'}</td>
+                                <td>
+                                    <button class="btn btn-sm ${cat.active ? 'btn-warning' : 'btn-success'}"
+                                            onclick="toggleCategoryStatus('${cat.id}', ${cat.active})">
+                                        ${cat.active ? 'Deactivate' : 'Activate'}
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteCategory('${cat.id}')">
+                                        Delete
+                                    </button>
+                                </td>`;
+                            tbody.appendChild(row);
+                        });
+                    }
+
+                    async function toggleCategoryStatus(id, currentStatus) {
+                        const updated = await putData('categories', {
+                            id: id,
+                            active: currentStatus ? 0 : 1
+                        });
+                        await loadCategories();
+                    }
+
+                    async function deleteCategory(id) {
+                        if (!confirm('Are you sure you want to delete this category?')) return;
+                        const res = await deleteData('categories', { id });
+                        if (res?.error) return alert(res.error);
+                        await loadCategories();
+                    }
+
+                    document.getElementById('category_form').addEventListener('submit', async function (e) {
+                        e.preventDefault();
+                        const name = document.getElementById('category_name').value.trim();
+                        if (!name) return alert('Enter category name');
+                        await postData('categories', { name });
+                        document.getElementById('category_name').value = '';
+                        await loadCategories();
+                    });
+
+
+                async function truncateDatabase() {
+                    if (!confirm('Clear all data? This cannot be undone.')) return;
+                    await postData('truncate_database', {});
+                    await refreshAll();
+                }
+
+                async function refreshAll() {
+                    await Promise.all([
+                        loadPurchases(),
+                        loadReadyToSale(),
+                        loadSales(),
+                        loadReturns(),
+                        loadReport(),
+                        //loadMasterData('categories'),
+                        //loadMasterData('types'),
+                        //loadMasterData('sizes'),
+                        //loadMasterData('suppliers'),
+                        loadCategories()
+                    ]);
+                }
+
+                document.getElementById('purchase_form').addEventListener('submit', async e => {
+                    e.preventDefault();
+                    const data = {
+                        category_id: document.getElementById('purchase_category').value,
+                        type_id: document.getElementById('purchase_type').value,
+                        size_id: document.getElementById('purchase_size').value,
+                        supplier_id: document.getElementById('purchase_supplier').value,
+                        quantity: parseInt(document.getElementById('purchase_quantity').value),
+                        price: parseFloat(document.getElementById('purchase_price').value) || 0,
+                        tax: parseFloat(document.getElementById('purchase_tax').value) || 0,
+                        carry_cost: parseFloat(document.getElementById('purchase_carry_cost').value) || 0,
+                        extra_cost: parseFloat(document.getElementById('purchase_extra_cost').value) || 0
+                    };
+                    await postData('purchases', data);
+                    document.getElementById('purchase_form').reset();
+                    await refreshAll();
+                });
+
+                document.getElementById('ready_to_sale_form').addEventListener('submit', async e => {
+                    e.preventDefault();
+                    const data = {
+                        purchase_id: document.getElementById('ready_purchase_id').value,
+                        quantity: parseInt(document.getElementById('ready_quantity').value)
+                    };
+                    await postData('ready_to_sale', data);
+                    document.getElementById('ready_to_sale_form').reset();
+                    await refreshAll();
+                });
+
+                document.getElementById('sale_form').addEventListener('submit', async e => {
+                    e.preventDefault();
+                    const data = {
+                        ready_to_sale_id: document.getElementById('sale_ready_id').value,
+                        quantity: parseInt(document.getElementById('sale_quantity').value)
+                    };
+                    await postData('sales', data);
+                    document.getElementById('sale_form').reset();
+                    await refreshAll();
+                });
+
+                document.getElementById('return_form').addEventListener('submit', async e => {
+                    e.preventDefault();
+                    const data = {
+                        category_id: document.getElementById('return_category').value,
+                        type_id: document.getElementById('return_type').value,
+                        size_id: document.getElementById('return_size').value,
+                        supplier_id: document.getElementById('return_supplier').value,
+                        return_type: document.getElementById('return_type_select').value,
+                        quantity: parseInt(document.getElementById('return_quantity').value),
+                        add_to_stock: parseInt(document.getElementById('return_add_to_stock').value),
+                        loss_amount: parseFloat(document.getElementById('return_loss_amount').value) || 0
+                    };
+                    await postData('returns', data);
+                    document.getElementById('return_form').reset();
+                    document.getElementById('return_add_to_stock').value = '1';
+                    await refreshAll();
+                });
+
+                ['report_category', 'report_type', 'report_size', 'report_supplier'].forEach(id => 
+                    document.getElementById(id).addEventListener('change', loadReport)
+                );
+
+                async function init() {
+                    await Promise.all([
+                        populateDropdown('purchase_category', 'categories'),
+                        populateDropdown('purchase_type', 'types'),
+                        populateDropdown('purchase_size', 'sizes'),
+                        populateDropdown('purchase_supplier', 'suppliers'),
+                        populateDropdown('return_category', 'categories'),
+                        populateDropdown('return_type', 'types'),
+                        populateDropdown('return_size', 'sizes'),
+                        populateDropdown('return_supplier', 'suppliers'),
+                        populateDropdown('report_category', 'categories', false),
+                        populateDropdown('report_type', 'types', false),
+                        populateDropdown('report_size', 'sizes', false),
+                        populateDropdown('report_supplier', 'suppliers', false),
+                        //loadMasterData('categories'),
+                        //loadMasterData('types'),
+                        //loadMasterData('sizes'),
+                        //loadMasterData('suppliers'),
+                        loadPurchases(),
+                        loadReadyToSale(),
+                        loadSales(),
+                        loadReturns(),
+                        loadReport(),
+                        loadCategories()
+                    ]);
+                }
+
+                init();
+                
+
+                //////////////Return Manage
+
+                document.addEventListener('DOMContentLoaded', () => {
+            const returnForm = document.getElementById('returnForm');
+            const clearFormBtn = document.getElementById('clearForm');
+            const returnsTableBody = document.getElementById('returnsTableBody');
+
+            // Fetch and populate dropdowns
+            async function loadDropdowns() {
+                const endpoints = ['categories', 'types', 'sizes', 'suppliers'];
+                const dropdowns = ['categoryId', 'typeId', 'sizeId', 'supplierId'];
+                
+                for (let i = 0; i < endpoints.length; i++) {
+                    const response = await fetch(`/api/${endpoints[i]}`);
+                    const data = await response.json();
+                    const select = document.getElementById(dropdowns[i]);
+                    select.innerHTML = `<option value="">Select ${endpoints[i][0].toUpperCase() + endpoints[i].slice(1, -1)}</option>`;
+                    data.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.name;
+                        select.appendChild(option);
+                    });
+                }
+            }
+
+            // Load returns data
+            async function loadReturns() {
+                const response = await fetch('/api/returns');
+                const returns = await response.json();
+                returnsTableBody.innerHTML = '';
+                returns.forEach(r => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${cat.name}</td>
-                        <td>${cat.active ? 'Active' : 'Inactive'}</td>
-                        <td>
-                            <button class="btn btn-sm ${cat.active ? 'btn-warning' : 'btn-success'}"
-                                    onclick="toggleCategoryStatus('${cat.id}', ${cat.active})">
-                                ${cat.active ? 'Deactivate' : 'Activate'}
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteCategory('${cat.id}')">
-                                Delete
-                            </button>
-                        </td>`;
-                    tbody.appendChild(row);
+                        <td class="py-2 px-4 border">${r.category}</td>
+                        <td class="py-2 px-4 border">${r.type}</td>
+                        <td class="py-2 px-4 border">${r.size}</td>
+                        <td class="py-2 px-4 border">${r.supplier}</td>
+                        <td class="py-2 px-4 border">${r.return_type}</td>
+                        <td class="py-2 px-4 border">${r.quantity}</td>
+                        <td class="py-2 px-4 border">${r.add_to_stock ? 'Yes' : 'No'}</td>
+                        <td class="py-2 px-4 border">${r.loss_amount}</td>
+                        <td class="py-2 px-4 border">${r.date}</td>
+                        <td class="py-2 px-4 border">
+                            <button class="btn btn-warning" data-id="${r.id}">Edit</button>
+                            <button class="btn btn-danger" data-id="${r.id}">Delete</button>
+                            ${r.add_to_stock ? `
+                                <button class="btn btn-success" data-id="${r.id}" data-quantity="${r.quantity}">To Ready</button>
+                                <button class="btn btn-danger" data-id="${r.id}" data-quantity="${r.quantity}">To Sale</button>
+                            ` : ''}
+                        </td>
+                    `;
+                    returnsTableBody.appendChild(row);
+                });
+
+                // Add event listeners for buttons
+                document.querySelectorAll('.edit-btn').forEach(btn => {
+                    btn.addEventListener('click', () => editReturn(btn.dataset.id));
+                });
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', () => deleteReturn(btn.dataset.id));
+                });
+                document.querySelectorAll('.ready-btn').forEach(btn => {
+                    btn.addEventListener('click', () => moveToReady(btn.dataset.id, btn.dataset.quantity));
+                });
+                document.querySelectorAll('.sale-btn').forEach(btn => {
+                    btn.addEventListener('click', () => moveToSale(btn.dataset.id, btn.dataset.quantity));
                 });
             }
 
-            async function toggleCategoryStatus(id, currentStatus) {
-                const updated = await putData('categories', {
-                    id: id,
-                    active: currentStatus ? 0 : 1
-                });
-                await loadCategories();
-            }
+            // Clear form
+            clearFormBtn.addEventListener('click', () => {
+                returnForm.reset();
+                document.getElementById('returnId').value = '';
+                document.getElementById('submitReturn').textContent = 'Save Return';
+            });
 
-            async function deleteCategory(id) {
-                if (!confirm('Are you sure you want to delete this category?')) return;
-                const res = await deleteData('categories', { id });
-                if (res?.error) return alert(res.error);
-                await loadCategories();
-            }
-
-            document.getElementById('category_form').addEventListener('submit', async function (e) {
+            // Submit form
+            returnForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const name = document.getElementById('category_name').value.trim();
-                if (!name) return alert('Enter category name');
-                await postData('categories', { name });
-                document.getElementById('category_name').value = '';
-                await loadCategories();
-            });
+                const returnId = document.getElementById('returnId').value;
+                const data = {
+                    category_id: document.getElementById('categoryId').value,
+                    type_id: document.getElementById('typeId').value,
+                    size_id: document.getElementById('sizeId').value,
+                    supplier_id: document.getElementById('supplierId').value,
+                    return_type: document.getElementById('returnType').value,
+                    quantity: parseInt(document.getElementById('quantity').value),
+                    add_to_stock: document.getElementById('addToStock').checked ? 1 : 0,
+                    loss_amount: parseFloat(document.getElementById('lossAmount').value) || 0
+                };
 
+                const method = returnId ? 'PUT' : 'POST';
+                const url = returnId ? `/api/returns` : '/api/returns';
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...data, id: returnId })
+                });
 
-        async function truncateDatabase() {
-            if (!confirm('Clear all data? This cannot be undone.')) return;
-            await postData('truncate_database', {});
-            await refreshAll();
-        }
-
-        async function refreshAll() {
-            await Promise.all([
-                loadPurchases(),
-                loadReadyToSale(),
-                loadSales(),
-                loadReturns(),
-                loadReport(),
-                //loadMasterData('categories'),
-                //loadMasterData('types'),
-                //loadMasterData('sizes'),
-                //loadMasterData('suppliers'),
-                loadCategories()
-            ]);
-        }
-
-        document.getElementById('purchase_form').addEventListener('submit', async e => {
-            e.preventDefault();
-            const data = {
-                category_id: document.getElementById('purchase_category').value,
-                type_id: document.getElementById('purchase_type').value,
-                size_id: document.getElementById('purchase_size').value,
-                supplier_id: document.getElementById('purchase_supplier').value,
-                quantity: parseInt(document.getElementById('purchase_quantity').value),
-                price: parseFloat(document.getElementById('purchase_price').value) || 0,
-                tax: parseFloat(document.getElementById('purchase_tax').value) || 0,
-                carry_cost: parseFloat(document.getElementById('purchase_carry_cost').value) || 0,
-                extra_cost: parseFloat(document.getElementById('purchase_extra_cost').value) || 0
-            };
-            await postData('purchases', data);
-            document.getElementById('purchase_form').reset();
-            await refreshAll();
-        });
-
-        document.getElementById('ready_to_sale_form').addEventListener('submit', async e => {
-            e.preventDefault();
-            const data = {
-                purchase_id: document.getElementById('ready_purchase_id').value,
-                quantity: parseInt(document.getElementById('ready_quantity').value)
-            };
-            await postData('ready_to_sale', data);
-            document.getElementById('ready_to_sale_form').reset();
-            await refreshAll();
-        });
-
-        document.getElementById('sale_form').addEventListener('submit', async e => {
-            e.preventDefault();
-            const data = {
-                ready_to_sale_id: document.getElementById('sale_ready_id').value,
-                quantity: parseInt(document.getElementById('sale_quantity').value)
-            };
-            await postData('sales', data);
-            document.getElementById('sale_form').reset();
-            await refreshAll();
-        });
-
-        document.getElementById('return_form').addEventListener('submit', async e => {
-            e.preventDefault();
-            const data = {
-                category_id: document.getElementById('return_category').value,
-                type_id: document.getElementById('return_type').value,
-                size_id: document.getElementById('return_size').value,
-                supplier_id: document.getElementById('return_supplier').value,
-                return_type: document.getElementById('return_type_select').value,
-                quantity: parseInt(document.getElementById('return_quantity').value),
-                add_to_stock: parseInt(document.getElementById('return_add_to_stock').value),
-                loss_amount: parseFloat(document.getElementById('return_loss_amount').value) || 0
-            };
-            await postData('returns', data);
-            document.getElementById('return_form').reset();
-            document.getElementById('return_add_to_stock').value = '1';
-            await refreshAll();
-        });
-
-        ['report_category', 'report_type', 'report_size', 'report_supplier'].forEach(id => 
-            document.getElementById(id).addEventListener('change', loadReport)
-        );
-
-        async function init() {
-            await Promise.all([
-                populateDropdown('purchase_category', 'categories'),
-                populateDropdown('purchase_type', 'types'),
-                populateDropdown('purchase_size', 'sizes'),
-                populateDropdown('purchase_supplier', 'suppliers'),
-                populateDropdown('return_category', 'categories'),
-                populateDropdown('return_type', 'types'),
-                populateDropdown('return_size', 'sizes'),
-                populateDropdown('return_supplier', 'suppliers'),
-                populateDropdown('report_category', 'categories', false),
-                populateDropdown('report_type', 'types', false),
-                populateDropdown('report_size', 'sizes', false),
-                populateDropdown('report_supplier', 'suppliers', false),
-                //loadMasterData('categories'),
-                //loadMasterData('types'),
-                //loadMasterData('sizes'),
-                //loadMasterData('suppliers'),
-                loadPurchases(),
-                loadReadyToSale(),
-                loadSales(),
-                loadReturns(),
-                loadReport(),
-                loadCategories()
-            ]);
-        }
-
-        init();
-        
-
-        //////////////Return Manage
-
-        document.addEventListener('DOMContentLoaded', () => {
-    const returnForm = document.getElementById('returnForm');
-    const clearFormBtn = document.getElementById('clearForm');
-    const returnsTableBody = document.getElementById('returnsTableBody');
-
-    // Fetch and populate dropdowns
-    async function loadDropdowns() {
-        const endpoints = ['categories', 'types', 'sizes', 'suppliers'];
-        const dropdowns = ['categoryId', 'typeId', 'sizeId', 'supplierId'];
-        
-        for (let i = 0; i < endpoints.length; i++) {
-            const response = await fetch(`/api/${endpoints[i]}`);
-            const data = await response.json();
-            const select = document.getElementById(dropdowns[i]);
-            select.innerHTML = `<option value="">Select ${endpoints[i][0].toUpperCase() + endpoints[i].slice(1, -1)}</option>`;
-            data.forEach(item => {
-                const option = document.createElement('option');
-                option.value = item.id;
-                option.textContent = item.name;
-                select.appendChild(option);
-            });
-        }
-    }
-
-    // Load returns data
-    async function loadReturns() {
-        const response = await fetch('/api/returns');
-        const returns = await response.json();
-        returnsTableBody.innerHTML = '';
-        returns.forEach(r => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td class="py-2 px-4 border">${r.category}</td>
-                <td class="py-2 px-4 border">${r.type}</td>
-                <td class="py-2 px-4 border">${r.size}</td>
-                <td class="py-2 px-4 border">${r.supplier}</td>
-                <td class="py-2 px-4 border">${r.return_type}</td>
-                <td class="py-2 px-4 border">${r.quantity}</td>
-                <td class="py-2 px-4 border">${r.add_to_stock ? 'Yes' : 'No'}</td>
-                <td class="py-2 px-4 border">${r.loss_amount}</td>
-                <td class="py-2 px-4 border">${r.date}</td>
-                <td class="py-2 px-4 border">
-                    <button class="btn btn-warning" data-id="${r.id}">Edit</button>
-                    <button class="btn btn-danger" data-id="${r.id}">Delete</button>
-                    ${r.add_to_stock ? `
-                        <button class="btn btn-success" data-id="${r.id}" data-quantity="${r.quantity}">To Ready</button>
-                        <button class="btn btn-danger" data-id="${r.id}" data-quantity="${r.quantity}">To Sale</button>
-                    ` : ''}
-                </td>
-            `;
-            returnsTableBody.appendChild(row);
-        });
-
-        // Add event listeners for buttons
-        document.querySelectorAll('.edit-btn').forEach(btn => {
-            btn.addEventListener('click', () => editReturn(btn.dataset.id));
-        });
-        document.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', () => deleteReturn(btn.dataset.id));
-        });
-        document.querySelectorAll('.ready-btn').forEach(btn => {
-            btn.addEventListener('click', () => moveToReady(btn.dataset.id, btn.dataset.quantity));
-        });
-        document.querySelectorAll('.sale-btn').forEach(btn => {
-            btn.addEventListener('click', () => moveToSale(btn.dataset.id, btn.dataset.quantity));
-        });
-    }
-
-    // Clear form
-    clearFormBtn.addEventListener('click', () => {
-        returnForm.reset();
-        document.getElementById('returnId').value = '';
-        document.getElementById('submitReturn').textContent = 'Save Return';
-    });
-
-    // Submit form
-    returnForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const returnId = document.getElementById('returnId').value;
-        const data = {
-            category_id: document.getElementById('categoryId').value,
-            type_id: document.getElementById('typeId').value,
-            size_id: document.getElementById('sizeId').value,
-            supplier_id: document.getElementById('supplierId').value,
-            return_type: document.getElementById('returnType').value,
-            quantity: parseInt(document.getElementById('quantity').value),
-            add_to_stock: document.getElementById('addToStock').checked ? 1 : 0,
-            loss_amount: parseFloat(document.getElementById('lossAmount').value) || 0
-        };
-
-        const method = returnId ? 'PUT' : 'POST';
-        const url = returnId ? `/api/returns` : '/api/returns';
-        const response = await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...data, id: returnId })
-        });
-
-        const result = await response.json();
-        if (response.ok) {
-            alert(result.message);
-            clearFormBtn.click();
-            loadReturns();
-        } else {
-            alert(result.error);
-        }
-    });
-
-    // Edit return
-    async function editReturn(id) {
-        const response = await fetch('/api/returns');
-        const returns = await response.json();
-        const r = returns.find(r => r.id === id);
-        if (r) {
-            document.getElementById('returnId').value = r.id;
-            document.getElementById('categoryId').value = r.category_id || '';
-            document.getElementById('typeId').value = r.type_id || '';
-            document.getElementById('sizeId').value = r.size_id || '';
-            document.getElementById('supplierId').value = r.supplier_id || '';
-            document.getElementById('returnType').value = r.return_type;
-            document.getElementById('quantity').value = r.quantity;
-            document.getElementById('addToStock').checked = r.add_to_stock;
-            document.getElementById('lossAmount').value = r.loss_amount;
-            document.getElementById('submitReturn').textContent = 'Update Return';
-        }
-    }
-
-    // Delete return
-    async function deleteReturn(id) {
-        if (confirm('Are you sure you want to delete this return?')) {
-            const response = await fetch('/api/returns', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id })
-            });
-            const result = await response.json();
-            alert(result.message || result.error);
-            loadReturns();
-        }
-    }
-
-    // Move to Ready to Sale
-    async function moveToReady(returnId, maxQuantity) {
-        const quantity = prompt(`Enter quantity to move to Ready to Sale (max ${maxQuantity}):`, maxQuantity);
-        if (quantity && parseInt(quantity) > 0 && parseInt(quantity) <= parseInt(maxQuantity)) {
-            const response = await fetch('/api/returns_to_ready_to_sale', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ return_id: returnId, quantity: parseInt(quantity) })
-            });
-            const result = await response.json();
-            alert(result.message || result.error);
-            loadReturns();
-        } else {
-            alert('Invalid quantity');
-        }
-    }
-
-    // Move to Sale
-    async function moveToSale(returnId, maxQuantity) {
-        const quantity = prompt(`Enter quantity to move to Sale (max ${maxQuantity}):`, maxQuantity);
-        if (quantity && parseInt(quantity) > 0 && parseInt(quantity) <= parseInt(maxQuantity)) {
-            const response = await fetch('/api/returns_to_sale', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ return_id: returnId, quantity: parseInt(quantity) })
-            });
-            const result = await response.json();
-            alert(result.message || result.error);
-            loadReturns();
-        } else {
-            alert('Invalid quantity');
-        }
-    }
-
-    // Initialize
-    loadDropdowns();
-    loadReturns();
-});
-
-// Modified to include return status and mark return button
-async function fetchSavedInvoices() {
-    const response = await fetch('/api/invoices/list');
-    const data = await response.json();
-
-    const table = $('#invoiceTable').DataTable({
-        data: data,
-        destroy: true,
-        columns: [
-            { data: 'awb_number', title: 'AWB Number' },
-            { data: 'order_id', title: 'Order ID' },
-            { data: 'invoice_no', title: 'Invoice No' },
-            { data: 'invoice_date', title: 'Invoice Date' },
-            { data: 'customer_name', title: 'Customer Name' },
-            { data: 'state', title: 'State' },
-            { data: 'payment_type', title: 'Payment Type' },
-            { 
-                data: 'return_status', 
-                title: 'Return Status',
-                render: function (data, type, row) {
-                    return data === 'yes' 
-                        ? `Returned (${row.return_type}): ${row.return_reason || 'No reason'}`
-                        : 'Not Returned';
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    clearFormBtn.click();
+                    loadReturns();
+                } else {
+                    alert(result.error);
                 }
-            },
-            {
-                data: null,
-                title: 'PDF',
-                render: function (row) {
-                    const safePDF = encodeURIComponent(row.pdf_name || '');
-                    return safePDF
-                        ? `<a href="/view_pdf/${safePDF}" target="_blank">🔍 View</a>`
-                        : 'No PDF';
-                }
-            },
-            {
-                data: null,
-                title: 'Action',
-                render: function (row) {
-                    let actions = row.return_status !== 'yes'
-                        ? `<button onclick="openReturnModal('${row.bill_id}', '${row.invoice_no}')">Mark Return</button>`
-                        : '';
-                    actions += ` <button onclick="deleteInvoice('${row.bill_id}')">Delete</button>`;
-                    return actions;
+            });
+
+            // Edit return
+            async function editReturn(id) {
+                const response = await fetch('/api/returns');
+                const returns = await response.json();
+                const r = returns.find(r => r.id === id);
+                if (r) {
+                    document.getElementById('returnId').value = r.id;
+                    document.getElementById('categoryId').value = r.category_id || '';
+                    document.getElementById('typeId').value = r.type_id || '';
+                    document.getElementById('sizeId').value = r.size_id || '';
+                    document.getElementById('supplierId').value = r.supplier_id || '';
+                    document.getElementById('returnType').value = r.return_type;
+                    document.getElementById('quantity').value = r.quantity;
+                    document.getElementById('addToStock').checked = r.add_to_stock;
+                    document.getElementById('lossAmount').value = r.loss_amount;
+                    document.getElementById('submitReturn').textContent = 'Update Return';
                 }
             }
-        ]
-    });
-}
-// Modified openReturnModal to use button onclick instead of form submit
-function openReturnModal(billId, invoiceNo) {
-    const modalHtml = `
-        <div id="returnModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center;">
-            <div style="background: white; padding: 20px; border-radius: 5px; width: 400px;">
-                <h3>Mark Return for Invoice ${invoiceNo}</h3>
-                <div id="returnFormDiv">
-                    <input type="hidden" id="bill_id" value="${billId}">
-                    <div>
-                        <label>Return Type:</label>
-                        <select id="return_type" required>
-                            <option value="Customer">Customer</option>
-                            <option value="RTO">RTO</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label>Add to Stock:</label>
-                        <input type="checkbox" id="add_to_stock" value="1">
-                    </div>
-                    <div>
-                        <label>Category:</label>
-                        <select id="category_id" required>
-                            <!-- Populate with categories via API -->
-                        </select>
-                    </div>
-                    <div>
-                        <label>Type:</label>
-                        <select id="type_id" required>
-                            <!-- Populate with types via API -->
-                        </select>
-                    </div>
-                    <div>
-                        <label>Size:</label>
-                        <select id="size_id" required>
-                            <!-- Populate with sizes via API -->
-                        </select>
-                    </div>
-                    <div>
-                        <label>Supplier:</label>
-                        <select id="supplier_id" required>
-                            <!-- Populate with suppliers via API -->
-                        </select>
-                    </div>
-                    <div>
-                        <label>Quantity:</label>
-                        <input type="input" id="quantity" value="1" min="1" required>
-                    </div>
-                    <div>
-                        <label>Loss Amount:</label>
-                        <input type="number" id="loss_amount" value="0" min="0" step="0.01">
-                    </div>
-                    <div>
-                        <label>Reason:</label>
-                        <textarea id="reason" rows="3"></textarea>
-                    </div>
-                    <button type="button" onclick="submitReturn()">Submit Return</button>
-                    <button type="button" onclick="closeReturnModal()">Cancel</button>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-    // Populate dropdowns
-    Promise.all([
-        fetch('/api/categories').then(res => res.json()),
-        fetch('/api/types').then(res => res.json()),
-        fetch('/api/sizes').then(res => res.json()),
-        fetch('/api/suppliers').then(res => res.json())
-    ]).then(([categories, types, sizes, suppliers]) => {
-        document.querySelector('#category_id').innerHTML = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-        document.querySelector('#type_id').innerHTML = types.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-        document.querySelector('#size_id').innerHTML = sizes.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-        document.querySelector('#supplier_id').innerHTML = suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-    });
-}
+            // Delete return
+            async function deleteReturn(id) {
+                if (confirm('Are you sure you want to delete this return?')) {
+                    const response = await fetch('/api/returns', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id })
+                    });
+                    const result = await response.json();
+                    alert(result.message || result.error);
+                    loadReturns();
+                }
+            }
 
-// Function to submit return
-async function submitReturn() {
-    alert(document.getElementById('return_type').value);
-    const data = {
-        bill_id: document.getElementById('bill_id').value,
-        return_type: document.getElementById('return_type').value|| "RTO",
-        add_to_stock: document.getElementById('add_to_stock').checked ? 1 : 0 ,
-        category_id: document.getElementById('category_id').value,
-        type_id: document.getElementById('type_id').value,
-        size_id: document.getElementById('size_id').value,
-        supplier_id: document.getElementById('supplier_id').value,
-        quantity: document.getElementById('quantity').value || 1,
-        loss_amount: document.getElementById('loss_amount').value,
-        reason: document.getElementById('reason').value
-    };
+            // Move to Ready to Sale
+            async function moveToReady(returnId, maxQuantity) {
+                const quantity = prompt(`Enter quantity to move to Ready to Sale (max ${maxQuantity}):`, maxQuantity);
+                if (quantity && parseInt(quantity) > 0 && parseInt(quantity) <= parseInt(maxQuantity)) {
+                    const response = await fetch('/api/returns_to_ready_to_sale', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ return_id: returnId, quantity: parseInt(quantity) })
+                    });
+                    const result = await response.json();
+                    alert(result.message || result.error);
+                    loadReturns();
+                } else {
+                    alert('Invalid quantity');
+                }
+            }
 
-    const response = await fetch('/api/invoices/mark_return', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    });
-    const result = await response.json();
-    if (response.ok) {
-        alert('Return marked successfully');
-        closeReturnModal();
-        fetchSavedInvoices();
-    } else {
-        alert(result.error || 'Failed to mark return');
-    }
-}
+            // Move to Sale
+            async function moveToSale(returnId, maxQuantity) {
+                const quantity = prompt(`Enter quantity to move to Sale (max ${maxQuantity}):`, maxQuantity);
+                if (quantity && parseInt(quantity) > 0 && parseInt(quantity) <= parseInt(maxQuantity)) {
+                    const response = await fetch('/api/returns_to_sale', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ return_id: returnId, quantity: parseInt(quantity) })
+                    });
+                    const result = await response.json();
+                    alert(result.message || result.error);
+                    loadReturns();
+                } else {
+                    alert('Invalid quantity');
+                }
+            }
 
-// Function to close modal
-function closeReturnModal() {
-    const modal = document.getElementById('returnModal');
-    if (modal) modal.remove();
-}
-
-// Delete invoice function
-async function deleteInvoice(billId) {
-    if (!confirm('Are you sure you want to delete this invoice?')) return;
-    
-    const response = await fetch('/api/invoices/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bill_id: billId })
-    });
-    const result = await response.json();
-    if (response.ok) {
-        alert('Invoice deleted successfully');
-        fetchSavedInvoices();
-    } else {
-        alert(result.error || 'Failed to delete invoice');
-    }
-}
-
-// Fetch and display invoice summary
-async function fetchInvoiceSummary() {
-    const response = await fetch('/api/invoice_summary/data');
-    const data = await response.json();
-    
-    // Update counts
-    document.getElementById('totalBills').textContent = data.total_bills;
-    document.getElementById('totalReturns').textContent = data.total_returns;
-    document.getElementById('actualSales').textContent = data.actual_sales;
-    
-    
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Fix tab-pane blank space
-    const tabs = document.querySelectorAll('.nav-link');
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.tab-pane').forEach(pane => {
-                pane.classList.remove('show', 'active');
-                pane.style.display = 'none';
-            });
-            const targetId = tab.getAttribute('href').substring(1);
-            const targetPane = document.getElementById(targetId);
-            targetPane.classList.add('show', 'active');
-            targetPane.style.display = 'block';
+            // Initialize
+            loadDropdowns();
+            loadReturns();
         });
-    });
 
-    // Marketing tab PDF generation
-    const generateButton = document.getElementById('generate_pdf');
-    generateButton.addEventListener('click', async () => {
-        const data = {
-            category: document.getElementById('category').value,
-            xs_count: parseInt(document.getElementById('xs_count').value),
-            s_count: parseInt(document.getElementById('s_count').value),
-            m_count: parseInt(document.getElementById('m_count').value),
-            l_count: parseInt(document.getElementById('l_count').value),
-            xl_count: parseInt(document.getElementById('xl_count').value),
-            xxl_count: parseInt(document.getElementById('xxl_count').value),
-            brand_text: document.getElementById('brand_text').value,
-            brand_color: document.getElementById('brand_color').value,
-            brand_font: document.getElementById('brand_font').value,
-            brand_size: parseInt(document.getElementById('brand_size').value),
-            size_text: document.getElementById('size_text').value,
-            size_color: document.getElementById('size_color').value,
-            size_font: document.getElementById('size_font').value,
-            size_size: parseInt(document.getElementById('size_size').value),
-            message_color: document.getElementById('message_color').value,
-            message_font: document.getElementById('message_font').value,
-            message_size: parseInt(document.getElementById('message_size').value),
-            thanks_text: document.getElementById('thanks_text').value,
-            thanks_color: document.getElementById('thanks_color').value,
-            thanks_font: document.getElementById('thanks_font').value,
-            thanks_size: parseInt(document.getElementById('thanks_size').value),
-            url_text: document.getElementById('url_text').value,
-            url_color: document.getElementById('url_color').value,
-            url_font: document.getElementById('url_font').value,
-            url_size: parseInt(document.getElementById('url_size').value),
-            emoji_text: document.getElementById('emoji_text').value,
-            emoji_color: document.getElementById('emoji_color').value,
-            emoji_size: parseInt(document.getElementById('emoji_size').value)
-        };
+        // Modified to include return status and mark return button
+        async function fetchSavedInvoices() {
+            const response = await fetch('/api/invoices/list');
+            const data = await response.json();
 
-        const total = data.xs_count + data.s_count + data.m_count + data.l_count + data.xl_count + data.xxl_count;
-        if (total !== 36) {
-            alert(`Total must be exactly 36. You entered ${total}.`);
-            return;
+            const table = $('#invoiceTable').DataTable({
+                data: data,
+                destroy: true,
+                columns: [
+                    { data: 'awb_number', title: 'AWB Number' },
+                    { data: 'order_id', title: 'Order ID' },
+                    { data: 'invoice_no', title: 'Invoice No' },
+                    { data: 'invoice_date', title: 'Invoice Date' },
+                    { data: 'customer_name', title: 'Customer Name' },
+                    { data: 'state', title: 'State' },
+                    { data: 'payment_type', title: 'Payment Type' },
+                    { 
+                        data: 'return_status', 
+                        title: 'Return Status',
+                        render: function (data, type, row) {
+                            return data === 'yes' 
+                                ? `Returned (${row.return_type}): ${row.return_reason || 'No reason'}`
+                                : 'Not Returned';
+                        }
+                    },
+                    {
+                        data: null,
+                        title: 'PDF',
+                        render: function (row) {
+                            const safePDF = encodeURIComponent(row.pdf_name || '');
+                            return safePDF
+                                ? `<a href="/view_pdf/${safePDF}" target="_blank">🔍 View</a>`
+                                : 'No PDF';
+                        }
+                    },
+                    {
+                        data: null,
+                        title: 'Action',
+                        render: function (row) {
+                            let actions = row.return_status !== 'yes'
+                                ? `<button onclick="openReturnModal('${row.bill_id}', '${row.invoice_no}')">Mark Return</button>`
+                                : '';
+                            actions += ` <button onclick="deleteInvoice('${row.bill_id}')">Delete</button>`;
+                            return actions;
+                        }
+                    }
+                ]
+            });
+        }
+        // Modified openReturnModal to use button onclick instead of form submit
+        function openReturnModal(billId, invoiceNo) {
+            const modalHtml = `
+                <div id="returnModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center;">
+                    <div style="background: white; padding: 20px; border-radius: 5px; width: 400px;">
+                        <h3>Mark Return for Invoice ${invoiceNo}</h3>
+                        <div id="returnFormDiv">
+                            <input type="hidden" id="bill_id" value="${billId}">
+                            <div>
+                                <label>Return Type:</label>
+                                <select id="return_type" required>
+                                    <option value="Customer">Customer</option>
+                                    <option value="RTO">RTO</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Add to Stock:</label>
+                                <input type="checkbox" id="add_to_stock" value="1">
+                            </div>
+                            <div>
+                                <label>Category:</label>
+                                <select id="category_id" required>
+                                    <!-- Populate with categories via API -->
+                                </select>
+                            </div>
+                            <div>
+                                <label>Type:</label>
+                                <select id="type_id" required>
+                                    <!-- Populate with types via API -->
+                                </select>
+                            </div>
+                            <div>
+                                <label>Size:</label>
+                                <select id="size_id" required>
+                                    <!-- Populate with sizes via API -->
+                                </select>
+                            </div>
+                            <div>
+                                <label>Supplier:</label>
+                                <select id="supplier_id" required>
+                                    <!-- Populate with suppliers via API -->
+                                </select>
+                            </div>
+                            <div>
+                                <label>Quantity:</label>
+                                <input type="input" id="quantity" value="1" min="1" required>
+                            </div>
+                            <div>
+                                <label>Loss Amount:</label>
+                                <input type="number" id="loss_amount" value="0" min="0" step="0.01">
+                            </div>
+                            <div>
+                                <label>Reason:</label>
+                                <textarea id="reason" rows="3"></textarea>
+                            </div>
+                            <button type="button" onclick="submitReturn()">Submit Return</button>
+                            <button type="button" onclick="closeReturnModal()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Populate dropdowns
+            Promise.all([
+                fetch('/api/categories').then(res => res.json()),
+                fetch('/api/types').then(res => res.json()),
+                fetch('/api/sizes').then(res => res.json()),
+                fetch('/api/suppliers').then(res => res.json())
+            ]).then(([categories, types, sizes, suppliers]) => {
+                document.querySelector('#category_id').innerHTML = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                document.querySelector('#type_id').innerHTML = types.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+                document.querySelector('#size_id').innerHTML = sizes.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+                document.querySelector('#supplier_id').innerHTML = suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            });
         }
 
-        try {
-            const response = await fetch('/api/generate_pdf', {
+        // Function to submit return
+        async function submitReturn() {
+            alert(document.getElementById('return_type').value);
+            const data = {
+                bill_id: document.getElementById('bill_id').value,
+                return_type: document.getElementById('return_type').value|| "RTO",
+                add_to_stock: document.getElementById('add_to_stock').checked ? 1 : 0 ,
+                category_id: document.getElementById('category_id').value,
+                type_id: document.getElementById('type_id').value,
+                size_id: document.getElementById('size_id').value,
+                supplier_id: document.getElementById('supplier_id').value,
+                quantity: document.getElementById('quantity').value || 1,
+                loss_amount: document.getElementById('loss_amount').value,
+                reason: document.getElementById('reason').value
+            };
+
+            const response = await fetch('/api/invoices/mark_return', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-
-            if (!response.ok) {
-                const error = await response.json();
-                alert(error.error);
-                return;
+            const result = await response.json();
+            if (response.ok) {
+                alert('Return marked successfully');
+                closeReturnModal();
+                fetchSavedInvoices();
+            } else {
+                alert(result.error || 'Failed to mark return');
             }
+        }
 
+        // Function to close modal
+        function closeReturnModal() {
+            const modal = document.getElementById('returnModal');
+            if (modal) modal.remove();
+        }
+
+        // Delete invoice function
+        async function deleteInvoice(billId) {
+            if (!confirm('Are you sure you want to delete this invoice?')) return;
+            
+            const response = await fetch('/api/invoices/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bill_id: billId })
+            });
+            const result = await response.json();
+            if (response.ok) {
+                alert('Invoice deleted successfully');
+                fetchSavedInvoices();
+            } else {
+                alert(result.error || 'Failed to delete invoice');
+            }
+        }
+
+        // Fetch and display invoice summary
+        async function fetchInvoiceSummary() {
+            const response = await fetch('/api/invoice_summary/data');
+            const data = await response.json();
+            
+            // Update counts
+            document.getElementById('totalBills').textContent = data.total_bills;
+            document.getElementById('totalReturns').textContent = data.total_returns;
+            document.getElementById('actualSales').textContent = data.actual_sales;
+            
+            
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Fix tab-pane blank space
+            const tabs = document.querySelectorAll('.nav-link');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-pane').forEach(pane => {
+                        pane.classList.remove('show', 'active');
+                        pane.style.display = 'none';
+                    });
+                    const targetId = tab.getAttribute('href').substring(1);
+                    const targetPane = document.getElementById(targetId);
+                    targetPane.classList.add('show', 'active');
+                    targetPane.style.display = 'block';
+                });
+            });
+
+            // Marketing tab PDF generation
+            const generateButton = document.getElementById('generate_pdf');
+            generateButton.addEventListener('click', async () => {
+                const data = {
+                    category: document.getElementById('category').value,
+                    xs_count: parseInt(document.getElementById('xs_count').value),
+                    s_count: parseInt(document.getElementById('s_count').value),
+                    m_count: parseInt(document.getElementById('m_count').value),
+                    l_count: parseInt(document.getElementById('l_count').value),
+                    xl_count: parseInt(document.getElementById('xl_count').value),
+                    xxl_count: parseInt(document.getElementById('xxl_count').value),
+                    brand_text: document.getElementById('brand_text').value,
+                    brand_color: document.getElementById('brand_color').value,
+                    brand_font: document.getElementById('brand_font').value,
+                    brand_size: parseInt(document.getElementById('brand_size').value),
+                    size_text: document.getElementById('size_text').value,
+                    size_color: document.getElementById('size_color').value,
+                    size_font: document.getElementById('size_font').value,
+                    size_size: parseInt(document.getElementById('size_size').value),
+                    message_color: document.getElementById('message_color').value,
+                    message_font: document.getElementById('message_font').value,
+                    message_size: parseInt(document.getElementById('message_size').value),
+                    thanks_text: document.getElementById('thanks_text').value,
+                    thanks_color: document.getElementById('thanks_color').value,
+                    thanks_font: document.getElementById('thanks_font').value,
+                    thanks_size: parseInt(document.getElementById('thanks_size').value),
+                    url_text: document.getElementById('url_text').value,
+                    url_color: document.getElementById('url_color').value,
+                    url_font: document.getElementById('url_font').value,
+                    url_size: parseInt(document.getElementById('url_size').value),
+                    emoji_text: document.getElementById('emoji_text').value,
+                    emoji_color: document.getElementById('emoji_color').value,
+                    emoji_size: parseInt(document.getElementById('emoji_size').value)
+                };
+
+                const total = data.xs_count + data.s_count + data.m_count + data.l_count + data.xl_count + data.xxl_count;
+                if (total !== 36) {
+                    alert(`Total must be exactly 36. You entered ${total}.`);
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/generate_pdf', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        alert(error.error);
+                        return;
+                    }
+
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `ladies_comfort_cards_${data.category.toLowerCase()}_${new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 15)}.pdf`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                } catch (error) {
+                    console.error('Error generating PDF:', error);
+                    alert('Failed to generate PDF. Please try again.');
+                }
+            });
+        });
+
+
+        document.getElementById("promoForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            const data = {
+            promoText: document.getElementById("promoText").value,
+            shopText: document.getElementById("shopText").value,
+            qrText: document.getElementById("qrText").value,
+            promoColor: document.getElementById("promoColor").value,
+            shopColor: document.getElementById("shopColor").value,
+            codeColor: document.getElementById("codeColor").value,
+            codes: Array.from(document.getElementsByName("codes[]")).map(e => e.value),
+            counts: Array.from(document.getElementsByName("counts[]")).map(e => parseInt(e.value))
+            };
+
+            const response = await fetch("/api/generate-promo-pdf", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `ladies_comfort_cards_${data.category.toLowerCase()}_${new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 15)}.pdf`;
-            a.click();
-            window.URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error('Error generating PDF:', error);
-            alert('Failed to generate PDF. Please try again.');
-        }
-    });
-});
+            window.open(url);
+            } else {
+            alert("Failed to generate PDF");
+            }
+        });
+        /*
+        <th>AWB</th>
+                                        <th>Order ID</th>
+                                        <th>SKU</th>
+                                        <th>Actions</th>
+        */
 
 
-document.getElementById("promoForm").addEventListener("submit", async function(event) {
-    event.preventDefault();
-
-    const data = {
-      promoText: document.getElementById("promoText").value,
-      shopText: document.getElementById("shopText").value,
-      qrText: document.getElementById("qrText").value,
-      promoColor: document.getElementById("promoColor").value,
-      shopColor: document.getElementById("shopColor").value,
-      codeColor: document.getElementById("codeColor").value,
-      codes: Array.from(document.getElementsByName("codes[]")).map(e => e.value),
-      counts: Array.from(document.getElementsByName("counts[]")).map(e => parseInt(e.value))
-    };
-
-    const response = await fetch("/api/generate-promo-pdf", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
-
-    if (response.ok) {
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      window.open(url);
-    } else {
-      alert("Failed to generate PDF");
-    }
-  });
-/*
-<th>AWB</th>
-                                <th>Order ID</th>
-                                <th>SKU</th>
-                                <th>Actions</th>
-*/
-
-
-    </script>
+</script>
 </body>
 </html>
