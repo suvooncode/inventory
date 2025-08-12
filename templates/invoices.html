@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Invoices</title>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { width: 100%; }
+        #loadDataBtn {
+            padding: 10px 15px;
+            background-color: #007bff;
+            border: none;
+            color: white;
+            cursor: pointer;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        #loadDataBtn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Invoices</h1>
+    <a href="/">Home</a>
+    <button id="loadDataBtn">Load Invoices</button>
+    <div id="loader" style="color:green"></div>
+    <table id="invoiceTable" class="display">
+        <thead>
+            <tr id="tableHeadRow"></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            let table;
+
+            $('#loadDataBtn').on('click', function() {
+                $("#loader").html("Loading ........")
+                fetch('/api/list/Paymentsinvoices')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.length === 0) {
+                            alert("No data found");
+                            return;
+                        }
+
+                        // Clear existing table if reloading
+                        if (table) {
+                            table.destroy();
+                            $('#invoiceTable thead tr').empty();
+                            $('#invoiceTable tbody').empty();
+                        }
+
+                        // Build table headers from keys of first row
+                        const keys = Object.keys(data[0]);
+                        keys.forEach(key => {
+                            $('#invoiceTable thead tr').append(`<th>${key}</th>`);
+                        });
+
+                        // Build table rows
+                        const rows = data.map(row => keys.map(k => row[k] || ''));
+
+                        // Initialize DataTable
+                        table = $('#invoiceTable').DataTable({
+                            data: rows,
+                            columns: keys.map(k => ({ title: k })),
+                            pageLength: 25
+                        });
+                        $("#loader").html("");
+                    })
+                    .catch(err => console.error('Error loading data:', err));
+            });
+        });
+    </script>
+</body>
+</html>

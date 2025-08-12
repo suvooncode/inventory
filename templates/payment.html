@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Payments Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        input[type="file"] {
+            display: block;
+            margin: 20px 0;
+            padding: 10px;
+            background: #f9fafb;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            width: 100%;
+        }
+
+        button {
+            background-color: #2563eb;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            width: 100%;
+        }
+
+        button:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f1f5f9;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Upload Order Payments</h1>
+    <a href="/">Home</a>
+
+    <input type="file" id="fileInput" accept=".xls,.xlsx">
+    <button id="uploadBtn" disabled>Upload</button>
+
+    <div id="result" class="result"></div>
+</div>
+
+<script>
+    const API_PATH = "http://127.0.0.1:8000/api/action/import_order_payments";
+
+    const fileInput = document.getElementById("fileInput");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const resultDiv = document.getElementById("result");
+
+    fileInput.addEventListener("change", () => {
+        uploadBtn.disabled = !fileInput.files.length;
+    });
+
+    uploadBtn.addEventListener("click", async () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        uploadBtn.disabled = true;
+        resultDiv.style.display = "none";
+
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+
+            const res = await fetch(API_PATH, {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Upload failed");
+
+            resultDiv.innerHTML = `
+                <p class="success"><strong>Upload Successful!</strong></p>
+                <p>Rows Inserted: ${data.rows_inserted}</p>
+                <p>Duplicates Skipped: ${data.duplicates_skipped}</p>
+                <p>Rows Skipped: ${data.rows_skipped}</p>
+            `;
+            resultDiv.style.display = "block";
+
+        } catch (err) {
+            resultDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`;
+            resultDiv.style.display = "block";
+        } finally {
+            uploadBtn.disabled = false;
+        }
+    });
+</script>
+</body>
+</html>

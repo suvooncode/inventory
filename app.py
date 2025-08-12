@@ -24,11 +24,23 @@ import tempfile
 import io
 import re
 
+import webbrowser
+import webview
+
+from io import BytesIO
+
+# Load config
+with open('config.json') as f:
+    config = json.load(f)
+
 app = Flask(__name__)
-UPLOAD_FOLDER = 'uploads'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# Use configs from JSON
+UPLOAD_FOLDER = config.get("UPLOAD_FOLDER", "uploads")
+DB_PATH = config.get("DB_PATH", "inventoryV4.db")
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-DB_PATH = 'inventoryV4.db'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def init_db():
     with sqlite3.connect(DB_PATH) as conn:
         c = conn.cursor()
@@ -93,7 +105,59 @@ def init_db():
                 order_id TEXT,
                 created_at TEXT,
                 UNIQUE(awb_number, order_id)
-            )
+            );
+            CREATE TABLE IF NOT EXISTS order_payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sub_order_no TEXT UNIQUE,
+    order_date TEXT,
+    dispatch_date TEXT,
+    product_name TEXT,
+    supplier_sku TEXT,
+    order_status TEXT,
+    product_gst_pct REAL,
+    listing_price REAL,
+    quantity INTEGER,
+    transaction_id TEXT,
+    payment_date TEXT,
+    final_settlement_amount REAL,
+    price_type TEXT,
+    total_sale_amount REAL,
+    total_sale_return_amount REAL,
+    fixed_fee REAL,
+    warehousing_fee REAL,
+    return_premium REAL,
+    return_premium_of_return REAL,
+    meesho_commission_pct REAL,
+    meesho_commission REAL,
+    meesho_gold_platform_fee REAL,
+    meesho_mall_platform_fee REAL,
+    fixed_fee_1 REAL,
+    warehousing_fee_1 REAL,
+    return_shipping_charge REAL,
+    gst_compensation REAL,
+    shipping_charge REAL,
+    other_support_service_charges REAL,
+    waivers REAL,
+    net_other_support_service_charges REAL,
+    gst_on_net_other_support_service_charges REAL,
+    tcs REAL,
+    tds_rate_pct REAL,
+    tds REAL,
+    compensation REAL,
+    claims REAL,
+    recovery REAL,
+    compensation_reason TEXT,
+    claims_reason TEXT,
+    recovery_reason TEXT
+);
+
+            CREATE TABLE IF NOT EXISTS order_payment_metadata (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                payment_id INTEGER,
+                meta_key TEXT,
+                meta_value TEXT,
+                FOREIGN KEY (payment_id) REFERENCES order_payments (id)
+            );
         ''')
         default_data = {
             'categories': ['Bra', 'Panty', 'Camisole', 'Nighty'],
@@ -179,6 +243,13 @@ def extract_data_from_pdf(pdf_path):
     invoices = extract_all_invoices(full_text)
     return [extract_data_from_invoice(inv) for inv in invoices]
 
+@app.route('/InvoicePayment')
+def InvoicePayment():
+    return render_template('invoices.html')
+
+@app.route('/Payment')
+def Payment():
+    return render_template('payment.html')
 
 @app.route('/')
 def index():
@@ -1073,7 +1144,8 @@ def open_preview():
 @app.route('/api/save_selected/savexls', methods=['POST'])
 def save_selected():
     print("-------------ready")
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(DB_PATH, timeout=10) as conn:
+        conn.execute("PRAGMA journal_mode=WAL;")  # Allow concurrent access
         c = conn.cursor()
         # DROP TABLE IF EXISTS invoices;
         c.executescript('''
@@ -1128,6 +1200,7 @@ def list_saved_invoices():
                 MAX(CASE WHEN m.meta_key = 'Customer Name' THEN m.meta_value END) AS customer_name,
                 MAX(CASE WHEN m.meta_key = 'State' THEN m.meta_value END) AS state,
                 MAX(CASE WHEN m.meta_key = 'Payment Type' THEN m.meta_value END) AS payment_type
+                MAX(CASE WHEN m.meta_key = 'Size' THEN m.meta_value END) AS size
             FROM invoices i
             LEFT JOIN invoice_metadata m ON i.bill_id = m.bill_id
             GROUP BY i.bill_id
@@ -1148,6 +1221,46 @@ def list_saved_invoices():
             for row in rows
         ]
     return jsonify(result)
+
+
+@app.route('/api/list/Paymentsinvoices')
+def invoices_payments():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+
+        print("Start executing .................")
+
+        # Build the query dynamically so we don't miss columns from order_payments
+        c.execute('PRAGMA table_info(order_payments)')
+        payment_cols = [col[1] for col in c.fetchall() if col[1] != 'id']  # skip PK id
+
+        # Select fields from invoices + metadata as pivots + all payment fields
+        query = f'''
+            SELECT 
+                i.*,
+                MAX(CASE WHEN m.meta_key = 'Invoice Date' THEN m.meta_value END) AS invoice_date,
+                MAX(CASE WHEN m.meta_key = 'Customer Name' THEN m.meta_value END) AS customer_name,
+                MAX(CASE WHEN m.meta_key = 'State' THEN m.meta_value END) AS state,
+                MAX(CASE WHEN m.meta_key = 'Payment Type' THEN m.meta_value END) AS payment_type,
+                MAX(CASE WHEN m.meta_key = 'Size' THEN m.meta_value END) AS size,
+                {', '.join([f"p.{col}" for col in payment_cols])}
+            FROM invoices i
+            LEFT JOIN invoice_metadata m 
+                ON i.bill_id = m.bill_id
+            LEFT JOIN order_payments p
+                ON i.order_id = REPLACE(p.sub_order_no, '_1', '')
+            GROUP BY i.bill_id
+            ORDER BY i.bill_id DESC
+        '''
+
+        c.execute(query)
+        rows = c.fetchall()
+        results = [dict(row) for row in rows]
+
+    return jsonify(results)
+
+
 
 @app.route('/view_pdf/<path:filename>')
 def view_pdf(filename):
@@ -1255,7 +1368,10 @@ def list_saved_invoices_m():
                 MAX(CASE WHEN m.meta_key = 'Payment Type' THEN m.meta_value END) AS payment_type,
                 MAX(CASE WHEN m.meta_key = 'return' THEN m.meta_value END) AS return_status,
                 MAX(CASE WHEN m.meta_key = 'return_type' THEN m.meta_value END) AS return_type,
-                MAX(CASE WHEN m.meta_key = 'reason' THEN m.meta_value END) AS return_reason
+                MAX(CASE WHEN m.meta_key = 'reason' THEN m.meta_value END) AS return_reason,
+                MAX(CASE WHEN m.meta_key = 'Size' THEN m.meta_value END) AS size,
+                MAX(CASE WHEN m.meta_key =  'Courier Partner' THEN m.meta_value END ) As courier,
+                MAX(CASE WHEN m.meta_key =  'Product Name' THEN m.meta_value END ) As product_name
             FROM invoices i
             LEFT JOIN invoice_metadata m ON i.bill_id = m.bill_id
             WHERE i.order_id != 'NA'
@@ -1277,7 +1393,10 @@ def list_saved_invoices_m():
                 'payment_type': row[8],
                 'return_status': row[9],
                 'return_type': row[10],
-                'return_reason': row[11]
+                'return_reason': row[11],
+                'size' : row[12],
+                'courier' : row [13],
+                'product_name' : row [14]
             } for row in rows
         ]
         return jsonify(result)
@@ -1449,6 +1568,7 @@ def manage_sku_mappings():
         
 @app.route('/api/upload_returns_csv', methods=['POST'])
 def upload_returns_csv():
+    print("request=======>",  request.files)
     if 'file' not in request.files:
         return jsonify({'error': 'no file uploaded'}), 400
 
@@ -1457,7 +1577,9 @@ def upload_returns_csv():
         return jsonify({'error': 'invalid file format, must be csv'}), 400
 
     try:
-        df = pd.read_csv(file)
+        # df = pd.read_csv(file)
+        df = pd.read_csv(file, on_bad_lines='skip', encoding='utf-8')
+        print("df---------------",df.columns.tolist())
         processed = []
         errors = []
         
@@ -2063,6 +2185,226 @@ def invoices_to_sale():
         'errors': errors or None
     })
 
+
+@app.route('/api/full_inventory_report', methods=['GET'])
+def full_inventory_report():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+
+        report = {}
+
+        # Purchases
+        c.execute('''
+            SELECT p.*, ca.name AS category_name, ty.name AS type_name,
+                   sz.name AS size_name, sp.name AS supplier_name
+            FROM purchases p
+            LEFT JOIN categories ca ON p.category_id = ca.id
+            LEFT JOIN types ty ON p.type_id = ty.id
+            LEFT JOIN sizes sz ON p.size_id = sz.id
+            LEFT JOIN suppliers sp ON p.supplier_id = sp.id
+        ''')
+        report['purchases'] = [dict(row) for row in c.fetchall()]
+
+        # Ready to Sale
+        c.execute('''
+            SELECT rts.*, p.id AS purchase_id
+            FROM ready_to_sale rts
+            LEFT JOIN purchases p ON rts.purchase_id = p.id
+        ''')
+        report['ready_to_sale'] = [dict(row) for row in c.fetchall()]
+
+        # Sales with customer data
+        c.execute('''
+            SELECT s.*, sl.awb_number, sl.order_id, sl.created_at AS log_time
+            FROM sales s
+            LEFT JOIN sales_log sl ON s.id = sl.sale_id
+        ''')
+        report['sales'] = [dict(row) for row in c.fetchall()]
+
+        # Returns
+        c.execute('''
+            SELECT r.*, ca.name AS category_name, ty.name AS type_name,
+                   sz.name AS size_name, sp.name AS supplier_name
+            FROM returns r
+            LEFT JOIN categories ca ON r.category_id = ca.id
+            LEFT JOIN types ty ON r.type_id = ty.id
+            LEFT JOIN sizes sz ON r.size_id = sz.id
+            LEFT JOIN suppliers sp ON r.supplier_id = sp.id
+        ''')
+        report['returns'] = [dict(row) for row in c.fetchall()]
+
+        # Stock Calculation
+        c.execute('''
+            SELECT ca.name AS category, ty.name AS type, sz.name AS size,
+                   sp.name AS supplier, p.quantity, 
+                   COALESCE(SUM(rts.quantity), 0) AS used,
+                   (p.quantity - COALESCE(SUM(rts.quantity), 0)) AS available
+            FROM purchases p
+            LEFT JOIN ready_to_sale rts ON rts.purchase_id = p.id
+            LEFT JOIN categories ca ON p.category_id = ca.id
+            LEFT JOIN types ty ON p.type_id = ty.id
+            LEFT JOIN sizes sz ON p.size_id = sz.id
+            LEFT JOIN suppliers sp ON p.supplier_id = sp.id
+            GROUP BY p.id
+        ''')
+        report['stocks'] = [dict(row) for row in c.fetchall()]
+
+        # Invoice to Sale
+        c.execute('''
+            SELECT im.bill_id, i.awb_number, i.order_id, im.meta_value AS sale_id
+            FROM invoice_metadata im
+            JOIN invoices i ON i.bill_id = im.bill_id
+            WHERE im.meta_key = 'sale_id'
+        ''')
+        report['invoice_to_sale'] = [dict(row) for row in c.fetchall()]
+
+        # Invoice to Return
+        c.execute('''
+            SELECT DISTINCT i.bill_id, i.awb_number, i.order_id
+            FROM invoices i
+            JOIN invoice_metadata im ON im.bill_id = i.bill_id
+            WHERE im.meta_key = 'return' AND LOWER(im.meta_value) = 'yes'
+        ''')
+        report['invoice_to_return'] = [dict(row) for row in c.fetchall()]
+
+        return jsonify(report)
+
+# init_order_payments_table()
+
+# ---- Import API ----
+@app.route("/api/action/import_order_payments", methods=["POST"])
+def import_order_payments():
+    # with sqlite3.connect(DB_PATH) as conn:
+    #     cursor = conn.cursor()
+    #     cursor.execute("DELETE FROM order_payments;")
+    #     conn.commit()
+    #     cursor.execute("VACUUM;")  # Optional, reclaims space
+    # return ""
+    # with sqlite3.connect(DB_PATH) as conn:
+    #     cursor = conn.cursor()
+    #     cursor.execute("DROP TABLE IF EXISTS order_payments;")
+    #     conn.commit()
+    #     return ""
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "Empty filename"}), 400
+
+    try:
+        df = pd.read_excel(BytesIO(file.read()), sheet_name="Order Payments")
+        df = df.rename(columns=lambda x: str(x).strip())
+
+        df = df.dropna(subset=["Sub Order No"])
+
+        inserted_count = 0
+        duplicate_count = 0
+
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+
+            for _, row in df.iterrows():
+                sub_order_no = str(row["Sub Order No"]).strip()
+
+                # Check for duplicates
+                cursor.execute("SELECT id FROM order_payments WHERE sub_order_no = ?", (sub_order_no,))
+                if cursor.fetchone():
+                    duplicate_count += 1
+                    continue
+
+                cursor.execute("""
+    INSERT INTO order_payments (
+        sub_order_no, order_date, dispatch_date, product_name, supplier_sku, order_status,
+        product_gst_pct, listing_price, quantity, transaction_id, payment_date,
+        final_settlement_amount, price_type, total_sale_amount, total_sale_return_amount,
+        fixed_fee, warehousing_fee, return_premium, return_premium_of_return,
+        meesho_commission_pct, meesho_commission, meesho_gold_platform_fee,
+        meesho_mall_platform_fee, fixed_fee_1, warehousing_fee_1, return_shipping_charge,
+        gst_compensation, shipping_charge, other_support_service_charges, waivers,
+        net_other_support_service_charges, gst_on_net_other_support_service_charges,
+        tcs, tds_rate_pct, tds, compensation, claims, recovery,
+        compensation_reason, claims_reason, recovery_reason
+    ) VALUES (
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    )
+""", (
+    row.get("Sub Order No"),
+    row.get("Order Date"),
+    row.get("Dispatch Date"),
+    row.get("Product Name"),
+    row.get("Supplier SKU"),
+    row.get("Live Order Status"),
+    row.get("Product GST %"),
+    row.get("Listing Price (Incl. taxes)"),
+    row.get("Quantity"),
+    row.get("Transaction ID"),
+    row.get("Payment Date"),
+    row.get("Final Settlement Amount"),
+    row.get("Price Type"),
+    row.get("Total Sale Amount (Incl. Shipping & GST)"),
+    row.get("Total Sale Return Amount (Incl. Shipping & GST)"),
+    row.get("Fixed Fee (Incl. GST)"),
+    row.get("Warehousing fee (inc Gst)"),
+    row.get("Return premium (incl GST)"),
+    row.get("Return premium (incl GST) of Return"),
+    row.get("Meesho Commission Percentage"),
+    row.get("Meesho Commission (Incl. GST)"),
+    row.get("Meesho gold platform fee (Incl. GST)"),
+    row.get("Meesho mall platform fee (Incl. GST)"),
+    row.get("Fixed Fee (Incl. GST).1"),
+    row.get("Warehousing fee (Incl. GST)"),
+    row.get("Return Shipping Charge (Incl. GST)"),
+    row.get("GST Compensation (PRP Shipping)"),
+    row.get("Shipping Charge (Incl. GST)"),
+    row.get("Other Support Service Charges (Excl. GST)"),
+    row.get("Waivers (Excl. GST)"),
+    row.get("Net Other Support Service Charges (Excl. GST)"),
+    row.get("GST on Net Other Support Service Charges"),
+    row.get("TCS"),
+    row.get("TDS Rate %"),
+    row.get("TDS"),
+    row.get("Compensation"),
+    row.get("Claims"),
+    row.get("Recovery"),
+    row.get("Compensation Reason"),
+    row.get("Claims Reason"),
+    row.get("Recovery Reason")
+))
+
+
+
+                inserted_count += 1
+
+            conn.commit()
+
+        skipped_count = len(df) - inserted_count - duplicate_count
+
+        return jsonify({
+            "status": "success",
+            "rows_inserted": inserted_count,
+            "duplicates_skipped": duplicate_count,
+            "rows_skipped": skipped_count
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    
+    
+# ---- Get Data API ----
+@app.route("/api/order_payments", methods=["GET"])
+def get_order_payments():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM order_payments ORDER BY order_date DESC")
+        rows = cursor.fetchall()
+        return jsonify([dict(row) for row in rows])
+
+
+
 def hex_to_rgb(hex_color):
     hex_color = hex_color.lstrip("#")
     return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
@@ -2073,6 +2415,31 @@ def hex_to_rgb(hex_color):
 def download_excel():
     return send_file("extracted.xlsx", as_attachment=True)
 
+import threading
+import time
+# import webview
+# from your_flask_app import app, init_db  # adjust import as needed
+
+
+def run_flask():
+    app.run(host='0.0.0.0', port=8000, debug=False, use_reloader=False)
+
+
 if __name__ == '__main__':
     init_db()
-    app.run(host='0.0.0.0', port=8000, debug=True)
+    url = 'http://127.0.0.1:8000' #
+    app.run(host='127.0.0.1', port=8000, debug=True)
+    # Start Flask in a new thread
+    # flask_thread = threading.Thread(target=run_flask)
+    # flask_thread.daemon = True
+    # flask_thread.start()
+
+    # Optional delay to allow Flask to start
+    # time.sleep(2)
+
+    try:
+        url = '' #http://127.0.0.1:8000
+        # webview.create_window("My App", url)
+        # webview.start()
+    except Exception as e:
+        print(f"Failed to open embedded webview: {e}")

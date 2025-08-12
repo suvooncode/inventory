@@ -139,6 +139,156 @@
     }
   }
 </style>
+
+<style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+            font-size: 14px;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .section-title {
+            margin-top: 2rem;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+
+
+        /* General layout */
+form#uploadForm {
+  max-width: 720px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  font-family: Arial, sans-serif;
+}
+
+form#uploadForm h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Description */
+form#uploadForm p {
+  color: #555;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+/* File picker */
+form#uploadForm label[for="paymentFile"] {
+  display: block;
+  border: 2px dashed #ccc;
+  border-radius: 6px;
+  padding: 2rem;
+  text-align: center;
+  background: #fafafa;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+form#uploadForm label[for="paymentFile"]:hover {
+  border-color: #999;
+}
+form#uploadForm input[type="file"] {
+  display: none;
+}
+
+/* Buttons */
+form#uploadForm button[type="submit"] {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+form#uploadForm button[type="submit"]:hover {
+  background: #1d4ed8;
+}
+form#uploadForm a {
+  color: #2563eb;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+form#uploadForm a:hover {
+  text-decoration: underline;
+}
+
+/* Stats boxes */
+form#uploadForm .stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+form#uploadForm .stat-box {
+  background: #f9fafb;
+  border-radius: 6px;
+  padding: 0.8rem;
+  text-align: center;
+}
+form#uploadForm .stat-box div:first-child {
+  font-size: 0.75rem;
+  color: #555;
+}
+form#uploadForm .stat-box div:last-child {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+form#uploadForm .stat-inserted {
+  color: #16a34a;
+}
+form#uploadForm .stat-duplicates {
+  color: #d97706;
+}
+
+/* Table preview */
+form#uploadForm table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+form#uploadForm thead {
+  background: #f3f4f6;
+}
+form#uploadForm th, form#uploadForm td {
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  text-align: left;
+}
+form#uploadForm tbody tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+/* Notes */
+form#uploadForm .notes {
+  font-size: 0.8rem;
+  color: #555;
+  margin-top: 1rem;
+}
+form#uploadForm .notes ul {
+  margin-top: 0.3rem;
+  padding-left: 1.2rem;
+}
+form#uploadForm .notes li {
+  margin-bottom: 0.3rem;
+}
+
+    </style>
+
 </head>
 <body>
     <ul class="nav nav-tabs">
@@ -155,8 +305,13 @@
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#setting">Setting</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#marketing">Marketing</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#Promocard">Promocard</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#MasterreportContainer">Master Report</a></li>
+        <li class="nav-item"><a class="nav-link" href="/Payment">Payment</a></li>
     </ul>
-
+    <div>
+        <a  href="/Payment">Payment</a>
+        <a  href="/InvoicePayment">Invoice Payment</a>
+    </div>
     
 
     <div class="tab-content">
@@ -837,18 +992,86 @@
 
         </div>
 
-        <div id="dashboard" class="tab-pane fade">
-            <h3>Dashboard</h3>
-            <h1 class="text-2xl font-bold mb-4">Invoice Analysis</h1>
-        
-                
-                
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h2 class="text-xl font-semibold mb-2">Bills and Returns vs. Invoice Date (Bar Chart)</h2>
-                    <canvas id="barChart" class="w-full h-64"></canvas>
-                </div>    
+        <div id="Payment" class="tab-pane fade">
+            <h3>Payments</h3>
+            <form id="uploadForm" action="/api/import_order_payments" method="post" enctype="multipart/form-data" class="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow">
+                <h2 class="text-2xl font-semibold mb-4">Upload Order Payments (Excel)</h2>
+
+                <p class="text-sm text-gray-600 mb-4">
+                    Select an <strong>.xlsx</strong> or <strong>.xls</strong> file. The server will parse the
+                    <em>Order Payments</em> sheet and import rows into the database (duplicates based on <code>sub_order_no</code> will be skipped).
+                </p>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2" for="paymentFile">Choose Excel file</label>
+
+                    <label for="paymentFile" class="relative flex items-center justify-center border-2 border-dashed border-gray-300 rounded-md p-6 cursor-pointer hover:border-gray-400">
+                    <input id="paymentFile" name="file" type="file" accept=".xlsx,.xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                    <div class="text-center">
+                        <svg class="mx-auto mb-2 w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16v-4a3 3 0 013-3h4a3 3 0 013 3v4m-4 4h.01" /></svg>
+                        <div class="text-sm text-gray-700">Drag &amp; drop file here, or click to browse</div>
+                        <div class="text-xs text-gray-500 mt-1">Accepted: .xlsx, .xls — Sheet name: <code>Order Payments</code></div>
+                    </div>
+                    </label>
+                </div>
+
+                <div class="flex gap-3 items-center mb-6">
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Upload &amp; Import</button>
+                    <a href="/sample/order_payments_template.xlsx" class="text-sm text-blue-600 hover:underline">Download sample template</a>
+                    <div id="uploadSpinner" class="hidden ml-auto text-sm text-gray-500">Uploading…</div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div class="bg-gray-50 p-3 rounded">
+                    <div class="text-xs text-gray-500">Processed</div>
+                    <div id="stat-processed" class="text-lg font-semibold">0</div>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded">
+                    <div class="text-xs text-gray-500">Inserted</div>
+                    <div id="stat-inserted" class="text-lg font-semibold text-green-600">0</div>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded">
+                    <div class="text-xs text-gray-500">Duplicates</div>
+                    <div id="stat-duplicates" class="text-lg font-semibold text-yellow-600">0</div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h3 class="text-sm font-medium text-gray-700 mb-2">Preview (first 10 rows)</h3>
+                    <div class="overflow-x-auto border rounded bg-white">
+                    <table id="previewTable" class="min-w-full text-sm">
+                        <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-3 py-2 text-left">Sub Order No</th>
+                            <th class="px-3 py-2 text-left">Order Date</th>
+                            <th class="px-3 py-2 text-left">Product</th>
+                            <th class="px-3 py-2 text-left">Supplier SKU</th>
+                            <th class="px-3 py-2 text-left">Qty</th>
+                            <th class="px-3 py-2 text-left">Listing Price</th>
+                            <th class="px-3 py-2 text-left">Status</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <!-- preview rows injected by client-side JS -->
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+
+                <div class="text-sm text-gray-500">
+                    <strong>Notes:</strong>
+                    <ul class="list-disc ml-5 mt-2">
+                    <li>Rows without <code>sub_order_no</code> will be skipped.</li>
+                    <li>Metadata columns (any extra columns) will be saved to <code>order_payment_metadata</code> linked to the inserted payment row.</li>
+                    <li>Server will return counts for inserted, duplicates and skipped rows after import.</li>
+                    </ul>
+                </div>
+                </form>
+   
 
         </div>
+
+
 
         <div id="Promocard" class="tab-pane fade">
                     <div class="container mt-4">
@@ -1031,6 +1254,13 @@
     </div>
 </div>
 
+        <div id="MasterreportContainer" class="tab-pane fade">
+            <div class="container mx-auto p-4">
+                <button onclick="loadMasterReport()">📊 Load Report</button>
+                <div id="reportContainer"></div>
+            </div>
+        </div>
+
     <!-- Modals -->
     <div class="modal fade" id="editPurchaseModal" tabindex="-1" aria-labelledby="editPurchaseModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -1194,6 +1424,8 @@
         document.getElementById('load-invoices').addEventListener('click', fetchSavedInvoices);
         document.addEventListener('DOMContentLoaded', () => {fetchInvoiceSummary();});
 
+        let API_PATH = 'http://127.0.0.1:8000/';
+
         document.getElementById('saveSaleBtnInvoiceTOSale').addEventListener('click', async () => {
             
 
@@ -1225,7 +1457,7 @@
 
 
             try {
-                const response = await fetch('/api/invoices_to_sale', {
+                const response = await fetch(`/api/invoices_to_sale`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(invoiceData)
@@ -1247,12 +1479,12 @@
 
         $(document).ready(function() {
                     // Load categories
-                    $.get('/api/categories', function(data) {
+                    $.get(`/api/categories`, function(data) {
                         $('#category').append(data.map(item => `<option value="${item.id}">${item.name}</option>`));
                     });
 
                     // Load sizes
-                    $.get('/api/sizes', function(data) {
+                    $.get(`/api/sizes`, function(data) {
                         $('#size').append(data.map(item => `<option value="${item.id}">${item.name}</option>`));
                     });
 
@@ -1277,7 +1509,7 @@
                         $('#result').addClass('hidden');
 
                         $.ajax({
-                            url: '/api/adjust_return_loss',
+                            url: `/api/adjust_return_loss`,
                             method: 'POST',
                             contentType: 'application/json',
                             data: JSON.stringify({
@@ -1320,7 +1552,7 @@
                         formData.append('file', file);
 
                         $.ajax({
-                            url: '/api/upload_returns_csv',
+                            url: `/api/upload_returns_csv`,
                             method: 'POST',
                             data: formData,
                             processData: false,
@@ -1367,22 +1599,22 @@
                     let currentData = {};
 
                     // Load dropdowns
-                    $.get('/api/categories', function(data) {
+                    $.get(`/api/categories`, function(data) {
                         $('#category').append(data.map(item => `<option value="${item.id}">${item.name}</option>`));
                     });
-                    $.get('/api/types', function(data) {
+                    $.get(`/api/types`, function(data) {
                         $('#type').append(data.map(item => `<option value="${item.id}">${item.name}</option>`));
                     });
-                    $.get('/api/sizes', function(data) {
+                    $.get(`/api/sizes`, function(data) {
                         $('#size').append(data.map(item => `<option value="${item.id}">${item.name}</option>`));
                     });
-                    $.get('/api/suppliers', function(data) {
+                    $.get(`/api/suppliers`, function(data) {
                         $('#supplier').append(data.map(item => `<option value="${item.id}">${item.name}</option>`));
                     });
 
                     // Load SKU mappings
                     function loadTable() {
-                        $.get('/api/sku_mappings', function(data) {
+                        $.get(`/api/sku_mappings`, function(data) {
                             $('#skuTable').empty();
                             data.forEach(item => {
                                 $('#skuTable').append(`
@@ -1414,7 +1646,7 @@
                             sku_id: $('#sku_id').val(),
                             confirm_duplicate: false
                         };
-                        const url = data.sku_id ? '/api/sku_mappings' : '/api/sku_mappings';
+                        const url = data.sku_id ? `/api/sku_mappings` : `/api/sku_mappings`;
                         const method = data.sku_id ? 'PUT' : 'POST';
 
                         $.ajax({
@@ -1444,7 +1676,7 @@
                     // Confirm duplicate
                     $('#confirmDuplicate').click(function() {
                         $.ajax({
-                            url: currentData.sku_id ? '/api/sku_mappings' : '/api/sku_mappings',
+                            url: currentData.sku_id ? `/api/sku_mappings` : `/api/sku_mappings`,
                             method: currentData.sku_id ? 'PUT' : 'POST',
                             contentType: 'application/json',
                             data: JSON.stringify(currentData),
@@ -1468,7 +1700,7 @@
                     // Edit SKU mapping
                     $(document).on('click', '.editBtn', function() {
                         const sku_id = $(this).data('id');
-                        $.get('/api/sku_mappings', function(data) {
+                        $.get(`/api/sku_mappings`, function(data) {
                             const item = data.find(i => i.sku_id === sku_id);
                             $('#category').val(data.find(c => c.name === item.category)?.id || '');
                             $('#type').val(data.find(t => t.name === item.type)?.id || '');
@@ -1483,7 +1715,7 @@
                     $(document).on('click', '.deleteBtn', function() {
                         if (confirm('Are you sure you want to delete this SKU mapping?')) {
                             $.ajax({
-                                url: '/api/sku_mappings',
+                                url: `/api/sku_mappings`,
                                 method: 'DELETE',
                                 contentType: 'application/json',
                                 data: JSON.stringify({ sku_id: $(this).data('id') }),
@@ -1501,7 +1733,7 @@
 
         $(document).ready(function() {
                     $.ajax({
-                        url: '/api/invoices/list',
+                        url: `/api/invoices/list`,
                         method: 'GET',
                         success: function(data) {
                             // Process data for charts
@@ -1606,7 +1838,7 @@
                         }
 
                         $.ajax({
-                            url: '/api/bulk_upload_folder',
+                            url: `/api/bulk_upload_folder`,
                             method: 'POST',
                             data: formData,
                             processData: false,
@@ -1674,7 +1906,7 @@
         document.getElementById('upload-form').addEventListener('submit', async function (e) {
             e.preventDefault();
             const formData = new FormData(this);
-            const response = await fetch('/upload', { method: 'POST', body: formData });
+            const response = await fetch(`/upload`, { method: 'POST', body: formData });
             const result = await response.json();
 
             const data = result.data;
@@ -1745,7 +1977,7 @@
                     inputs.forEach(input => {
                         rowData[input.name] = input.value;
                     });
-                    const res = await postData('/save_selected/savexls', { rows: [rowData] });
+                    const res = await postData(`/save_selected/savexls`, { rows: [rowData] });
                     alert(res.message);
                 };
                 saveTd.appendChild(btn);
@@ -1796,7 +2028,7 @@
                 });
 
                 if (!selectedRows.length) return alert('No rows selected!');
-                const res = await postData('/save_selected/savexls', { rows: selectedRows, pdf_name: pdf_name });
+                const res = await postData(`/save_selected/savexls`, { rows: selectedRows, pdf_name: pdf_name });
                 alert(res.message);
             }
         });
@@ -2137,7 +2369,7 @@
 
 
         async function editReady(id) {
-                    const items = await fetchData('ready_to_sale');
+                    const items = await fetchData(`ready_to_sale`);
                     const item = items.find(i => i.id === id);
                     if (!item) return;
                     const modal = new bootstrap.Modal(document.getElementById('editReadyModal'));
@@ -2148,7 +2380,7 @@
 
                 async function saveReady() {
                     const data = {
-                        id: document.getElementById('edit_ready_id').value,
+                        id: document.getElementById(`edit_ready_id`).value,
                         quantity: parseInt(document.getElementById('edit_ready_quantity').value)
                     };
                     await putData('ready_to_sale', data);
@@ -2171,7 +2403,7 @@
                 }
 
                 async function loadSales() {
-                    const sales = await fetchData('sales');
+                    const sales = await fetchData(`sales`);
                     const tbody = document.getElementById('sale_list');
                     tbody.innerHTML = '';
                     document.getElementById('sale_total_entries').textContent = sales.length;
@@ -2187,7 +2419,7 @@
                         tbody.appendChild(row);
                     });
 
-                    const summary = await fetchData('sales_sku_summary');
+                    const summary = await fetchData(`sales_sku_summary`);
                     const skuTable = document.getElementById('sales_sku_summary_list');
                     skuTable.innerHTML = '';
 
@@ -2208,7 +2440,7 @@
                 }
 
                 async function editSale(id) {
-                    const sales = await fetchData('sales');
+                    const sales = await fetchData(`sales`);
                     const s = sales.find(s => s.id === id);
                     if (!s) return;
                     const modal = new bootstrap.Modal(document.getElementById('editSaleModal'));
@@ -2219,7 +2451,7 @@
 
                 async function saveSale() {
                     const data = {
-                        id: document.getElementById('edit_sale_id').value,
+                        id: document.getElementById(`edit_sale_id`).value,
                         quantity: parseInt(document.getElementById('edit_sale_quantity').value)
                     };
                     await putData('sales', data);
@@ -2234,7 +2466,7 @@
                 }
 
                 async function loadReturns() {
-                    const returns = await fetchData('returns');
+                    const returns = await fetchData(`returns`);
                     const tbody = document.getElementById('return_list');
                     tbody.innerHTML = '';
                     let totalEntries = 0, totalLoss = 0;
@@ -2257,7 +2489,7 @@
                 }
 
                 async function editReturn(id) {
-                    const returns = await fetchData('returns');
+                    const returns = await fetchData(`returns`);
                     const r = returns.find(r => r.id === id);
                     if (!r) return;
                     const modal = new bootstrap.Modal(document.getElementById('editReturnModal'));
@@ -2294,7 +2526,7 @@
                         add_to_stock: parseInt(document.getElementById('edit_return_add_to_stock').value),
                         loss_amount: parseFloat(document.getElementById('edit_return_loss_amount').value) || 0
                     };
-                    await putData('returns', data);
+                    await putData(`returns`, data);
                     bootstrap.Modal.getInstance(document.getElementById('editReturnModal')).hide();
                     await refreshAll();
                 }
@@ -2698,6 +2930,9 @@
                     { data: 'customer_name', title: 'Customer Name' },
                     { data: 'state', title: 'State' },
                     { data: 'payment_type', title: 'Payment Type' },
+                    { data: 'size', title: 'Size' },
+                    { data: 'courier', title: 'courier' },
+                    { data: 'product_name', title: 'product_name' },
                     { 
                         data: 'return_status', 
                         title: 'Return Status',
@@ -2836,6 +3071,64 @@
                 fetchSavedInvoices();
             } else {
                 alert(result.error || 'Failed to mark return');
+            }
+        }
+
+
+        async function loadMasterReport() {
+            const container = document.getElementById('reportContainer');
+            container.innerHTML = '<p>Loading...</p>';
+
+            try {
+                const res = await fetch('/api/full_inventory_report');
+                const data = await res.json();
+
+                container.innerHTML = '';
+
+                for (const section in data) {
+                    const sectionData = data[section];
+                    const sectionTitle = document.createElement('div');
+                    sectionTitle.className = 'section-title';
+                    sectionTitle.textContent = section.replace(/_/g, ' ').toUpperCase();
+
+                    container.appendChild(sectionTitle);
+
+                    if (!Array.isArray(sectionData) || sectionData.length === 0) {
+                        container.innerHTML += '<p>No data found in this section.</p>';
+                        continue;
+                    }
+
+                    const table = document.createElement('table');
+                    const thead = document.createElement('thead');
+                    const headerRow = document.createElement('tr');
+
+                    const keys = Object.keys(sectionData[0]);
+                    keys.forEach(key => {
+                        const th = document.createElement('th');
+                        th.textContent = key;
+                        headerRow.appendChild(th);
+                    });
+                    thead.appendChild(headerRow);
+                    table.appendChild(thead);
+
+                    const tbody = document.createElement('tbody');
+                    sectionData.forEach(row => {
+                        const tr = document.createElement('tr');
+                        keys.forEach(key => {
+                            const td = document.createElement('td');
+                            td.textContent = row[key];
+                            tr.appendChild(td);
+                        });
+                        tbody.appendChild(tr);
+                    });
+
+                    table.appendChild(tbody);
+                    container.appendChild(table);
+                }
+
+            } catch (error) {
+                container.innerHTML = `<p style="color: red;">❌ Failed to load report. Please check the API.</p>`;
+                console.error('Error fetching report:', error);
             }
         }
 
@@ -2989,6 +3282,82 @@
             alert("Failed to generate PDF");
             }
         });
+
+
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const form = document.getElementById("uploadForm");
+            const fileInput = document.getElementById("paymentFile");
+            const fileNameDisplay = document.getElementById("fileName");
+            const insertedCount = document.getElementById("insertedCount");
+            const duplicateCount = document.getElementById("duplicateCount");
+            const notEnteredCount = document.getElementById("notEnteredCount");
+            const previewBody = document.getElementById("previewBody");
+
+            // Show selected file name
+            fileInput.addEventListener("change", function () {
+                if (fileInput.files.length > 0) {
+                    fileNameDisplay.textContent = fileInput.files[0].name;
+                } else {
+                    fileNameDisplay.textContent = "No file selected";
+                }
+            });
+
+            // Handle form submission
+            form.addEventListener("submit", async function (e) {
+                e.preventDefault();
+
+                if (fileInput.files.length === 0) {
+                    alert("Please select a file before uploading.");
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append("file", fileInput.files[0]);
+
+                try {
+                    const res = await fetch(API_PATH + "api/save/import_order_payments", {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    const data = await res.json();
+
+                    if (data.error) {
+                        alert("Error: " + data.error);
+                        return;
+                    }
+
+                    // Update stats
+                    insertedCount.textContent = data.rows_inserted || 0;
+                    duplicateCount.textContent = data.duplicates || 0;
+                    notEnteredCount.textContent = data.not_entered || 0;
+
+                    // Show preview table if available
+                    previewBody.innerHTML = "";
+                    if (data.preview && Array.isArray(data.preview)) {
+                        data.preview.forEach(row => {
+                            const tr = document.createElement("tr");
+                            tr.innerHTML = `
+                                <td>${row.sub_order_no || ""}</td>
+                                <td>${row.order_date || ""}</td>
+                                <td>${row.product_name || ""}</td>
+                                <td>${row.listing_price || ""}</td>
+                                <td>${row.quantity || ""}</td>
+                            `;
+                            previewBody.appendChild(tr);
+                        });
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                    alert("Upload failed. Check console for details.");
+                }
+            });
+        });
+
+
+
         /*
         <th>AWB</th>
                                         <th>Order ID</th>
