@@ -1223,8 +1223,8 @@ def list_saved_invoices():
     return jsonify(result)
 
 
-@app.route('/api/list/Paymentsinvoices')
-def invoices_payments():
+@app.route('/api/list/Paymentsinvoices_v4')
+def invoices_payments_v4():
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
@@ -1259,6 +1259,60 @@ def invoices_payments():
         results = [dict(row) for row in rows]
 
     return jsonify(results)
+
+
+@app.route('/api/list/Paymentsinvoices')
+def invoices_payments():
+    start_order_date = request.args.get('start_order_date')
+    end_order_date = request.args.get('end_order_date')
+    start_payment_date = request.args.get('start_payment_date')
+    end_payment_date = request.args.get('end_payment_date')
+
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+
+        c.execute('PRAGMA table_info(order_payments)')
+        payment_cols = [col[1] for col in c.fetchall() if col[1] != 'id']
+
+        query = f'''
+            SELECT 
+                i.*,
+                MAX(CASE WHEN m.meta_key = 'Invoice Date' THEN m.meta_value END) AS invoice_date,
+                MAX(CASE WHEN m.meta_key = 'Customer Name' THEN m.meta_value END) AS customer_name,
+                MAX(CASE WHEN m.meta_key = 'State' THEN m.meta_value END) AS state,
+                MAX(CASE WHEN m.meta_key = 'Payment Type' THEN m.meta_value END) AS payment_type,
+                MAX(CASE WHEN m.meta_key = 'Size' THEN m.meta_value END) AS size,
+                {', '.join([f"p.{col}" for col in payment_cols])}
+            FROM invoices i
+            LEFT JOIN invoice_metadata m 
+                ON i.bill_id = m.bill_id
+            LEFT JOIN order_payments p
+                ON i.order_id = REPLACE(p.sub_order_no, '_1', '')
+        '''
+
+        filters = []
+        params = []
+
+        if start_order_date and end_order_date:
+            filters.append("p.order_date BETWEEN ? AND ?")
+            params.extend([start_order_date, end_order_date])
+
+        if start_payment_date and end_payment_date:
+            filters.append("p.payment_date BETWEEN ? AND ?")
+            params.extend([start_payment_date, end_payment_date])
+
+        if filters:
+            query += " WHERE " + " AND ".join(filters)
+
+        query += " GROUP BY i.bill_id ORDER BY i.bill_id DESC"
+
+        c.execute(query, params)
+        rows = c.fetchall()
+        results = [dict(row) for row in rows]
+
+    return jsonify(results)
+
 
 
 
